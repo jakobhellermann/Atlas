@@ -1,0 +1,95 @@
+import { VerticalBox, ListView, CheckBox } from "std-widgets.slint";
+export struct CCTRecording  {
+    i: int,
+    chapter-name: string,
+    sid: string,
+    start-time: string,
+    can-render: bool,
+    checked: bool,
+}
+
+export component RecordingsTable inherits Rectangle {
+    in property <[string]> columns;
+    in property <[CCTRecording]> values;
+
+    private property <[length]> column_sizes: [
+        20px,
+        150px,
+        150px,
+        self.width - 20px - 150px - 150px - 60px,
+    ];
+
+    VerticalBox {
+        HorizontalLayout {
+            spacing: 8px;
+            for title[idx] in root.columns: HorizontalLayout {
+                width: root.column_sizes[idx];
+                Text {
+                    overflow: elide;
+                    text: title;
+                }
+
+                Rectangle {
+                    width: 1px;
+                    background: gray;
+                    TouchArea {
+                        width: 10px;
+                        x: (parent.width - self.width) / 2;
+                        property <length> cached;
+                        pointer-event(event) => {
+                            if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                                self.cached = root.column_sizes[idx];
+                            }
+                        }
+                        moved => {
+                            if (self.pressed) {
+                                root.column_sizes[idx] += (self.mouse-x - self.pressed-x);
+                                if (root.column_sizes[idx] < 10px) {
+                                    root.column_sizes[idx] = 10px;
+                                }
+                            }
+                        }
+                        mouse-cursor: ew-resize;
+                    }
+                }
+            }
+            Rectangle { }
+        }
+
+        ListView {
+            horizontal-stretch: 1;
+            for val in root.values: HorizontalLayout {
+                padding: 5px;
+                spacing: 5px;
+
+                Text {
+                    width: root.column-sizes[0];
+                    overflow: elide;
+                    text: val.i;
+                }
+
+                Text {
+                    width: root.column-sizes[1];
+                    overflow: elide;
+                    text: val.chapter-name;
+                }
+
+                Text {
+                    width: root.column-sizes[2];
+                    overflow: elide;
+                    text: val.start-time;
+                }
+
+                CheckBox {
+                    width: root.column-sizes[3];
+                    enabled: val.can-render;
+                    checked: val.checked && val.can-render;
+
+                    toggled => {
+                        val.checked = self.checked;
+                    }
+                }
+            }
+        }
+    }
+}

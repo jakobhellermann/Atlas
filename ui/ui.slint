@@ -1,0 +1,153 @@
+import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
+    HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator } from "std-widgets.slint";
+
+import { CCTRecording, RecordingsTable } from "recordings_table.slint";
+import { TasRecording } from "tas_recording.slint";
+
+enum ActiveWindow {
+    Main,
+    Record,
+}
+
+export component MainWindow inherits Window {
+    private property <ActiveWindow> nav: Main;
+
+    // main
+    in property <[CCTRecording]> recordings-model: [];
+    in property <string> error: "";
+
+    // actions
+    callback delete-recent-recordings;
+    callback record-tases;
+    callback retry-record-tases;
+
+    // entrypoints
+    callback record-started;
+    callback record-done;
+    callback record-ok;
+
+    // recording
+    in property <float> record-progress: 0.3;
+    in property <string> record-status: "10f";
+
+    // render
+    in property <bool> rendering: false;
+    callback render;
+
+    private property <bool> record-running;
+
+    record-started => {
+        nav = ActiveWindow.Record;
+        record-running = true;
+    }
+    record-done => {
+        record-running = false;
+    }
+
+    preferred-width: 720px;
+    preferred-height: 600px;
+
+    if nav == ActiveWindow.Record: TasRecording {
+        percentage: record-progress;
+        status-text: record-status;
+        running: record-running;
+
+        ok => {
+            nav = ActiveWindow.Main
+        }
+        abort => {
+            nav = ActiveWindow.Main
+        }
+        retry => {
+            retry-record-tases()
+        }
+    }
+    if nav == ActiveWindow.Main: VerticalBox {
+        HorizontalBox {
+            Button {
+                clicked => {
+                    record-tases()
+                }
+
+                text: "Record TASes";
+            }
+
+            Button {
+                clicked => {
+                    delete-recent-recordings();
+                }
+
+                text: "Delete recent recodings";
+            }
+        }
+
+        Text {
+            text: "Recent CCT Recordings";
+            font-size: 18pt;
+        }
+
+        RecordingsTable {
+            columns: ["#", "Chapter Name", "Time", "Include"];
+            values: recordings-model;
+        }
+
+        HorizontalLayout {
+            VerticalLayout {
+                Text {
+                    font-size: 18pt;
+                    text: "Render Settings";
+                }
+
+                HorizontalBox {
+                    Text {
+                        vertical-alignment: center;
+                        text: "Line Width";
+                    }
+
+                    slider := Slider {
+                        value: 1.0;
+                        minimum: 1.0;
+                        maximum: 20.0;
+                    }
+
+                    Text {
+                        text: Math.round(slider.value * 100) / 100;
+                    }
+                }
+
+                HorizontalBox {
+                    alignment: start;
+                    Text {
+                        vertical-alignment: center;
+                        text: "Color";
+                    }
+
+                    ComboBox {
+                        model: ["Gradient"];
+                    }
+                }
+            }
+        }
+
+        HorizontalBox {
+            padding: 0px;
+            alignment: space-between;
+
+            Text {
+                vertical-alignment: center;
+                font-size: 12pt;
+                text: root.error;
+                color: #ff3333;
+            }
+
+            Button {
+                enabled: !rendering;
+                clicked => {
+                    root.render();
+                }
+
+                text: "Render";
+            }
+        }
+    }
+}

@@ -1,0 +1,25 @@
+[package]
+name = "test-slint"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+celesteloader = { version = "0.1.0", path = "../celestetools/crates/celesteloader" }
+celesterender = { version = "0.1.0", path = "../celestetools/crates/celesterender" }
+annotate_celeste_map = { version = "0.1.0", path = "../celestetools/crates/annotate_celeste_map" }
+celestedebugrc = { version = "0.1.0", path = "../celestetools/crates/celestedebugrc" }
+
+anyhow = "1.0"
+serde = "1.0"
+serde_json = "1.0"
+slint = { version = "1.5" }
+chrono = { version = "0.4", features = [] }
+native-dialog = "0.7.0"
+opener = "0.6.1"
+notify = "6.1.1"
+
+[build-dependencies]
+slint-build = "1.5.0"
+
+[profile.dev.package."*"]
+opt-level = 2

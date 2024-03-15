@@ -1,0 +1,61 @@
+import { VerticalBox, ProgressIndicator, StandardButton } from "std-widgets.slint";
+export component TasRecording inherits VerticalBox {
+    in property <float> percentage <=> progress.progress;
+    in property <string> status-text <=> status.text;
+    in property <bool> running;
+
+    callback ok;
+    callback abort;
+    callback retry;
+
+    alignment: stretch;
+
+    Text {
+        font-size: 16pt;
+        text: "Recording TASes";
+        wrap: word-wrap;
+    }
+
+    progress := ProgressIndicator {
+        height: 5px;
+    }
+
+    status := Text {
+        wrap: word-wrap;
+    }
+
+    Rectangle {
+        visible: false;
+        vertical-stretch: 1;
+    }
+
+    Dialog {
+        Text {
+            text: "";
+        }
+
+        StandardButton {
+            kind: StandardButtonKind.abort;
+            enabled: running;
+            clicked => {
+                abort()
+            }
+        }
+
+        StandardButton {
+            kind: StandardButtonKind.retry;
+            enabled: !running && false;
+            clicked => {
+                retry()
+            }
+        }
+
+        StandardButton {
+            kind: StandardButtonKind.ok;
+            enabled: !running;
+            clicked => {
+                ok()
+            }
+        }
+    }
+}
