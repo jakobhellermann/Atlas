@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use anyhow::{Context, Result};
 use celestedebugrc::DebugRC;
 use celesteloader::{cct_physics_inspector::PhysicsInspector, map::Map, CelesteInstallation};

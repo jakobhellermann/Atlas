@@ -1,0 +1,24 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Package Name="tbd" Manufacturer="JJ" Version="0.2.0.0"
+        UpgradeCode="0d205f44-59e8-419f-a56b-11f7c9aa9211">
+        <MediaTemplate EmbedCab="true" />
+        <MajorUpgrade
+            AllowSameVersionUpgrades="no"
+            DowngradeErrorMessage="A newer version of [ProductName] is already installed. If you are sure you want to downgrade, remove the existing installation via the Control Panel" />
+        <!-- <Icon Id="icon.ico" SourceFile="../SaveMerger/Assets/icon.ico"/>-->
+
+        <StandardDirectory Id="ProgramFiles6432Folder">
+            <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
+        </StandardDirectory>
+
+        <Feature Id="Main">
+            <Component Directory="INSTALLFOLDER">
+                <File Source="bin/tbd.exe" KeyPath="true">
+                    <!-- Icon="icon.ico" -->
+                    <Shortcut Id="Shortcut" Directory="StartMenuFolder" Name="TBD" Advertise="true">
+                    </Shortcut>
+                </File>
+            </Component>
+        </Feature>
+    </Package>
+</Wix>
