@@ -1,4 +1,4 @@
-import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox } from "std-widgets.slint";
+import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox, ScrollView } from "std-widgets.slint";
 
 export enum TasRecordingState {
     Prepare,
@@ -39,10 +39,14 @@ export component TasRecording inherits VerticalBox {
     if state == TasRecordingState.Prepare: VerticalLayout {
         spacing: 8px;
 
-        for path in paths: Rectangle {
-            HorizontalLayout {
-                Text {
-                    text: "- " + path;
+        ScrollView {
+            max-height: 200px;
+            preferred-height: 0px;
+            VerticalLayout {
+                for path in paths: HorizontalLayout {
+                    Text {
+                        text: "- " + path;
+                    }
                 }
             }
         }
@@ -76,6 +80,10 @@ export component TasRecording inherits VerticalBox {
 
             CheckBox {
                 checked: run-as-merged;
+
+                toggled => {
+                    run-as-merged = self.checked
+                }
             }
         }
     }

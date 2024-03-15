@@ -3,13 +3,13 @@ use celestedebugrc::DebugRC;
 use celesteloader::{cct_physics_inspector::PhysicsInspector, map::Map, CelesteInstallation};
 use celesterender::{
     asset::{AssetDb, ModLookup},
-    CelesteRenderData, RenderResult,
+    CelesteRenderData, Layer, RenderMapSettings, RenderResult,
 };
 use chrono::DateTime;
 use indexmap::IndexMap;
 use notify::Watcher;
 use slint::{Model, SharedString, VecModel};
-use std::{path::PathBuf, rc::Rc};
+use std::{collections::HashSet, path::PathBuf, rc::Rc};
 
 slint::include_modules!();
 
@@ -55,7 +55,7 @@ pub fn main() -> Result<()> {
         let handle = main_window.as_weak();
         let mut state = RenderState::new(&celeste)?;
 
-        move || {
+        move |width, only_include_visited_rooms| {
             let sids: IndexMap<String, Vec<_>> =
                 recordings.iter().fold(IndexMap::new(), |mut acc, item| {
                     if item.checked {
@@ -66,7 +66,7 @@ pub fn main() -> Result<()> {
 
             let handle = handle.unwrap();
             handle.set_rendering(true);
-            render_recordings(sids, &mut state, |e| {
+            render_recordings(sids, &mut state, width, only_include_visited_rooms, |e| {
                 handle.set_error(format!("{e:?}").into());
             });
             handle.set_rendering(false);
@@ -120,7 +120,6 @@ pub fn main() -> Result<()> {
         let debugrc = DebugRC::new();
         let handle = main_window.as_weak();
         move |files, speedup, run_as_merged| {
-            dbg!(run_as_merged);
             let files = files
                 .iter()
                 .map(|p| PathBuf::from(p.to_string()))
@@ -133,33 +132,37 @@ pub fn main() -> Result<()> {
             std::thread::spawn(move || {
                 let result =
                     debugrc.run_tases_fastforward(&files, speedup, run_as_merged, |status| {
-                        let percentage = status
-                            .current_frame
-                            .parse::<u32>()
-                            .and_then(|current| {
-                                let total = status.total_frames.parse::<u32>()?;
-                                Ok((current, total))
-                            })
-                            .map(|(current, total)| current as f32 / total as f32);
-
-                        let msg = if let Some(origin) = status.origin {
-                            format!(
+                        let (msg, percentage) = if let Some(origin) = status.origin {
+                            let msg = format!(
                                 "{origin} {}/{}: {}/{}",
                                 status.current_file,
                                 status.total_files,
                                 status.current_frame,
                                 status.total_frames
-                            )
+                            );
+                            let percentage = status.current_file as f32 / status.total_files as f32;
+                            (msg, percentage)
                         } else {
-                            format!("{}/{}", status.current_frame, status.total_frames)
+                            let msg = format!("{}/{}", status.current_frame, status.total_frames);
+
+                            let percentage = status
+                                .current_frame
+                                .parse::<u32>()
+                                .ok()
+                                .and_then(|current| {
+                                    let total = status.total_frames.parse::<u32>().ok()?;
+                                    Some((current, total))
+                                })
+                                .map(|(current, total)| current as f32 / total as f32)
+                                .unwrap_or(1.0);
+
+                            (msg, percentage)
                         };
 
                         handle
                             .upgrade_in_event_loop(move |handle| {
                                 handle.set_record_status_text(msg.into());
-                                if let Ok(percentage) = percentage {
-                                    handle.set_record_progress(percentage);
-                                }
+                                handle.set_record_progress(percentage);
                             })
                             .unwrap();
                     });
@@ -215,12 +218,13 @@ impl RenderState {
         })
     }
 
-    fn render(&mut self, sid: &str) -> Result<(RenderResult, Map)> {
+    fn render(&mut self, sid: &str, settings: RenderMapSettings) -> Result<(RenderResult, Map)> {
         let (result, map) = celesterender::render_map_sid(
             &self.celeste,
             &mut self.render_data,
             &mut self.asset_db,
             sid,
+            settings,
         )
         .with_context(|| format!("{sid}"))?;
 
@@ -231,20 +235,51 @@ impl RenderState {
 fn render_recordings(
     sids: IndexMap<String, Vec<i32>>,
     state: &mut RenderState,
+    width: f32,
+    mut only_include_visited_rooms: bool,
     on_error: impl Fn(anyhow::Error),
 ) {
     for (sid, recordings) in sids {
+        let visited_rooms = if only_include_visited_rooms {
+            let mut rooms = HashSet::new();
+            for &recording in &recordings {
+                let layout = match state.physics_inspector.room_layout(recording as u32) {
+                    Ok(layout) => layout,
+                    Err(e) => {
+                        eprintln!(
+                            "Couldn't read room layouts, falling back to including all rooms: {e}"
+                        );
+                        only_include_visited_rooms = false;
+                        break;
+                    }
+                };
+                rooms.extend(layout.rooms.into_iter().map(|room| room.debug_room_name));
+            }
+            rooms
+        } else {
+            Default::default()
+        };
+
         if let Err(e) = (|| -> Result<()> {
             let a = std::time::Instant::now();
-            let (mut result, map) = state.render(&sid)?;
+            let (mut result, _map) = state.render(
+                &sid,
+                RenderMapSettings {
+                    layer: Layer::ALL,
+                    include_room: &|room| {
+                        !only_include_visited_rooms
+                            || visited_rooms.contains(room.name.trim_start_matches("lvl_"))
+                    },
+                },
+            )?;
 
-            let size_filled = map.rooms.iter().map(|room| room.bounds.area()).sum::<f32>();
-            let size = result.bounds.area();
-            let density = size_filled / size;
+            // let size_filled = map.rooms.iter().map(|room| room.bounds.area()).sum::<f32>();
+            // let size = result.bounds.area();
+            // let density = size_filled / size;
 
             for recording in recordings {
-                let width = Some(2.0);
-                let width = width.unwrap_or_else(|| if density > 0.5 { 8.0 } else { 3.0 });
+                // let width = Some(2.0);
+                // let width = width.unwrap_or_else(|| if density > 0.5 { 8.0 } else { 3.0 });
 
                 annotate_celeste_map::annotate_cct_recording_skia(
                     &mut result.image,

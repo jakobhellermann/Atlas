@@ -39,7 +39,9 @@ export component MainWindow inherits Window {
 
     // render
     in property <bool> rendering: false;
-    callback render;
+    callback render(float, bool);
+    private property <float> line-width: 2;
+    in-out property <bool> only-render-visited;
 
     record-done(success) => {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
@@ -131,15 +133,22 @@ export component MainWindow inherits Window {
                 }
 
                 HorizontalBox {
+                    padding-left: 0;
+                    padding-bottom: 0;
+
                     Text {
                         vertical-alignment: center;
                         text: "Line Width";
                     }
 
                     slider := Slider {
-                        value: 1.0;
+                        value: line-width;
                         minimum: 1.0;
                         maximum: 20.0;
+
+                        changed(val) => {
+                            line-width = val;
+                        }
                     }
 
                     Text {
@@ -148,7 +157,10 @@ export component MainWindow inherits Window {
                 }
 
                 HorizontalBox {
+                    padding-left: 0;
+                    padding-bottom: 0;
                     alignment: start;
+
                     Text {
                         vertical-alignment: center;
                         text: "Color";
@@ -156,6 +168,24 @@ export component MainWindow inherits Window {
 
                     ComboBox {
                         model: ["Gradient"];
+                    }
+                }
+
+                HorizontalBox {
+                    padding-left: 0;
+                    padding-bottom: 0;
+                    alignment: start;
+
+                    Text {
+                        vertical-alignment: center;
+                        text: "Only include visited rooms";
+                    }
+
+                    CheckBox {
+                        checked: only-render-visited;
+                        toggled => {
+                            only-render-visited = self.checked;
+                        }
                     }
                 }
             }
@@ -173,9 +203,9 @@ export component MainWindow inherits Window {
             }
 
             Button {
-                enabled: !rendering;
+                enabled: !rendering && recordings-model.length > 0;
                 clicked => {
-                    root.render();
+                    root.render(line-width, only-render-visited);
                 }
 
                 text: "Render";
