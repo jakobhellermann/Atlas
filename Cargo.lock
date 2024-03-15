@@ -4275,6 +4275,7 @@ dependencies = [
  "celesteloader",
  "celesterender",
  "chrono",
+ "indexmap",
  "native-dialog",
  "notify",
  "opener",

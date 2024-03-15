@@ -6,9 +6,10 @@ use celesterender::{
     CelesteRenderData, RenderResult,
 };
 use chrono::DateTime;
+use indexmap::IndexMap;
 use notify::Watcher;
-use slint::{Model, VecModel};
-use std::{collections::HashMap, rc::Rc};
+use slint::{Model, SharedString, VecModel};
+use std::{path::PathBuf, rc::Rc};
 
 slint::include_modules!();
 
@@ -28,10 +29,10 @@ pub fn main() -> Result<()> {
     {
         let recent_recordings_path = physics_inspector.recent_recordings.clone();
         let physics_inspector = physics_inspector.clone();
-        let mut watcher = notify::recommended_watcher(move |e| {
-            let physics_inspector = &physics_inspector;
+        let mut watcher = notify::recommended_watcher(move |_e| {
+            let _physics_inspector = &physics_inspector;
             watcher_handle
-                .upgrade_in_event_loop(move |handle| {
+                .upgrade_in_event_loop(move |_handle| {
                     /*let model = handle.get_recordings_model();
                     match read_recordings(&physics_inspector) {
                         Err(e) => handle.set_error(format!("{e:?}").into()),
@@ -40,9 +41,9 @@ pub fn main() -> Result<()> {
                             .downcast_ref::<VecModel<CCTRecording>>()
                             .unwrap()
                             .set_vec(new),
-                    }*/
+                    }
                     let model = handle.get_recordings_model();
-                    // read_recordings(physics_inspector);
+                    read_recordings(physics_inspector);*/
                 })
                 .unwrap();
         })?;
@@ -55,8 +56,8 @@ pub fn main() -> Result<()> {
         let mut state = RenderState::new(&celeste)?;
 
         move || {
-            let sids: HashMap<String, Vec<_>> =
-                recordings.iter().fold(HashMap::new(), |mut acc, item| {
+            let sids: IndexMap<String, Vec<_>> =
+                recordings.iter().fold(IndexMap::new(), |mut acc, item| {
                     if item.checked {
                         acc.entry(item.sid.into()).or_default().push(item.i);
                     }
@@ -100,60 +101,81 @@ pub fn main() -> Result<()> {
             };
         }
     });
+    main_window.on_pick_tas_files(move || {
+        let files = native_dialog::FileDialog::new()
+            .add_filter("TAS", &["tas"])
+            .show_open_multiple_file()
+            .unwrap();
+        let files = files
+            .into_iter()
+            .map(|file| file.to_str().unwrap().into())
+            .collect::<Vec<SharedString>>();
+        Rc::new(VecModel::from(files)).into()
+    });
+
+    main_window.on_abort_tas(move || {
+        let _res = DebugRC::new().send_tas_keybind("Start");
+    });
     main_window.on_record_tases({
         let debugrc = DebugRC::new();
         let handle = main_window.as_weak();
-        move || {
-            let files = native_dialog::FileDialog::new()
-                .add_filter("TAS", &["tas"])
-                .show_open_multiple_file()
-                .unwrap();
-            if files.is_empty() {
-                return;
-            }
+        move |files, speedup, run_as_merged| {
+            dbg!(run_as_merged);
+            let files = files
+                .iter()
+                .map(|p| PathBuf::from(p.to_string()))
+                .collect::<Vec<_>>();
 
             let debugrc = debugrc.clone();
-
-            handle.unwrap().invoke_record_started();
 
             let handle = handle.clone();
             let physics_inspector = physics_inspector.clone();
             std::thread::spawn(move || {
-                let speedup = 4.0;
-                let result = debugrc.run_tases_fastforward(&files, speedup, |status| {
-                    let percentage = status
-                        .current_frame
-                        .parse::<u32>()
-                        .and_then(|current| {
-                            let total = status.total_frames.parse::<u32>()?;
-                            Ok((current, total))
-                        })
-                        .map(|(current, total)| current as f32 / total as f32);
+                let result =
+                    debugrc.run_tases_fastforward(&files, speedup, run_as_merged, |status| {
+                        let percentage = status
+                            .current_frame
+                            .parse::<u32>()
+                            .and_then(|current| {
+                                let total = status.total_frames.parse::<u32>()?;
+                                Ok((current, total))
+                            })
+                            .map(|(current, total)| current as f32 / total as f32);
 
-                    let msg = if let Some(origin) = status.origin {
-                        format!("{origin}: {}/{}", status.current_frame, status.total_frames)
-                    } else {
-                        format!("{}/{}", status.current_frame, status.total_frames)
-                    };
+                        let msg = if let Some(origin) = status.origin {
+                            format!(
+                                "{origin} {}/{}: {}/{}",
+                                status.current_file,
+                                status.total_files,
+                                status.current_frame,
+                                status.total_frames
+                            )
+                        } else {
+                            format!("{}/{}", status.current_frame, status.total_frames)
+                        };
 
-                    handle
-                        .upgrade_in_event_loop(move |handle| {
-                            handle.set_record_status(msg.into());
-                            if let Ok(percentage) = percentage {
-                                handle.set_record_progress(percentage);
-                            }
-                        })
-                        .unwrap();
-                });
+                        handle
+                            .upgrade_in_event_loop(move |handle| {
+                                handle.set_record_status_text(msg.into());
+                                if let Ok(percentage) = percentage {
+                                    handle.set_record_progress(percentage);
+                                }
+                            })
+                            .unwrap();
+                    });
 
                 handle
                     .upgrade_in_event_loop(move |handle| {
                         match result {
-                            Ok(()) => handle.set_record_status("Done!".into()),
-                            Err(err) => handle.set_record_status(format!("{err:?}").into()),
+                            Ok(()) => {
+                                handle.set_record_status_text("Done!".into());
+                                handle.invoke_record_done(true);
+                            }
+                            Err(err) => {
+                                handle.set_record_status_text(format!("{err:?}").into());
+                                handle.invoke_record_done(false);
+                            }
                         };
-
-                        handle.invoke_record_done();
                         handle.set_record_progress(1.0);
 
                         let model = handle.get_recordings_model();
@@ -207,7 +229,7 @@ impl RenderState {
 }
 
 fn render_recordings(
-    sids: HashMap<String, Vec<i32>>,
+    sids: IndexMap<String, Vec<i32>>,
     state: &mut RenderState,
     on_error: impl Fn(anyhow::Error),
 ) {

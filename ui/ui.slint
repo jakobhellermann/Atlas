@@ -2,7 +2,7 @@ import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
     HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator } from "std-widgets.slint";
 
 import { CCTRecording, RecordingsTable } from "recordings_table.slint";
-import { TasRecording } from "tas_recording.slint";
+import { TasRecording, TasRecordingState } from "tas_recording.slint";
 
 enum ActiveWindow {
     Main,
@@ -17,60 +17,73 @@ export component MainWindow inherits Window {
 
     // main
     in property <[CCTRecording]> recordings-model: [];
-    in property <string> error: "";
+    in-out property <string> error: "";
 
     // actions
     callback delete-recent-recordings;
-    callback record-tases() -> [string];
     callback refresh-recordings;
-    callback retry-record-tases;
+    callback pick-tas-files() -> [string];
 
     // entrypoints
-    callback record-started;
-    callback record-done;
+    callback record-update(float, string, bool);
+    callback record-done(bool);
     callback record-ok;
 
     // recording
-    in property <float> record-progress: 0.0;
-    in property <string> record-status: "";
+    callback record-tases([string], float, bool);
+    callback abort-tas;
+    private property <TasRecordingState> record-state;
+    private property <[string]> record-paths;
+    in-out property <float> record-progress;
+    in-out property <string> record-status-text;
 
     // render
     in property <bool> rendering: false;
     callback render;
 
-    private property <bool> record-running;
-
-    record-started => {
-        nav = ActiveWindow.Record;
-        record-running = true;
-    }
-    record-done => {
-        record-running = false;
+    record-done(success) => {
+        record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
     }
 
     preferred-width: 720px;
     preferred-height: 600px;
 
-    if nav == ActiveWindow.Record: TasRecording {
-        percentage: record-progress;
-        status-text: record-status;
-        running: record-running;
+    if nav == ActiveWindow.Record: r := TasRecording {
+        state: record-state;
+        paths: record-paths;
+        progress: record-progress;
+        status-text: record-status-text;
+
+        record-tases(paths, fastforward-speed, run-as-merged) => {
+            record-state = TasRecordingState.Running;
+            record-status-text = "";
+            record-progress = 0.0;
+            record-tases(paths, fastforward-speed, run-as-merged);
+        }
 
         ok => {
-            nav = ActiveWindow.Main
+            nav = ActiveWindow.Main;
+            record-state = TasRecordingState.Prepare;
+            record-status-text = "";
+            record-progress = 0.0;
         }
         abort => {
-            nav = ActiveWindow.Main
-        }
-        retry => {
-            retry-record-tases()
+            nav = ActiveWindow.Main;
+            abort-tas();
+            record-state = TasRecordingState.Prepare;
+            record-status-text = "";
+            record-progress = 0.0;
         }
     }
     if nav == ActiveWindow.Main: VerticalBox {
         HorizontalBox {
             Button {
                 clicked => {
-                    record-tases()
+                    error = "";
+                    record-paths = pick-tas-files();
+                    if record-paths.length > 0 {
+                        nav = ActiveWindow.Record;
+                    }
                 }
 
                 text: "Record TASes";
@@ -78,6 +91,7 @@ export component MainWindow inherits Window {
 
             Button {
                 clicked => {
+                    error = "";
                     delete-recent-recordings();
                 }
 
@@ -98,6 +112,7 @@ export component MainWindow inherits Window {
                 icon: @image-url("refresh.svg");
 
                 clicked => {
+                    error = "";
                     refresh-recordings();
                 }
             }

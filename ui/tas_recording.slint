@@ -1,18 +1,30 @@
-import { VerticalBox, ProgressIndicator, StandardButton } from "std-widgets.slint";
-export component TasRecording inherits VerticalBox {
-    in property <float> percentage <=> progress.progress;
-    in property <string> status-text <=> status.text;
-    in property <bool> running;
+import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox } from "std-widgets.slint";
 
+export enum TasRecordingState {
+    Prepare,
+    Running,
+    DoneSuccess,
+    DoneError,
+}
+
+export component TasRecording inherits VerticalBox {
+    in property <[string]> paths: ["2a.tas", "3a.tas"];
+    in property <float> progress <=> progress.progress;
+    in property <string> status-text <=> status.text;
+    in property <TasRecordingState> state;
+
+    property <float> fastforward-speed: 500.0;
+    property <bool> run-as-merged: false;
+
+    callback record-tases([string], float, bool);
     callback ok;
     callback abort;
-    callback retry;
 
     alignment: stretch;
 
     Text {
         font-size: 16pt;
-        text: "Recording TASes";
+        text: "Record TASes";
         wrap: word-wrap;
     }
 
@@ -24,37 +36,119 @@ export component TasRecording inherits VerticalBox {
         wrap: word-wrap;
     }
 
+    if state == TasRecordingState.Prepare: VerticalLayout {
+        spacing: 8px;
+
+        for path in paths: Rectangle {
+            HorizontalLayout {
+                Text {
+                    text: "- " + path;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+
+            Text {
+                vertical-alignment: center;
+                text: "Fastforward Speed";
+            }
+
+            SpinBox {
+                value: fastforward-speed;
+
+                edited(val) => {
+                    fastforward-speed = val
+                }
+            }
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+
+            Text {
+                vertical-alignment: center;
+                text: "Run as merged file (can be faster but more prone to breaking)";
+            }
+
+            CheckBox {
+                checked: run-as-merged;
+            }
+        }
+    }
+
     Rectangle {
         visible: false;
         vertical-stretch: 1;
     }
 
-    Dialog {
+    if state == TasRecordingState.Prepare: Dialog {
+        Text {
+            text: "";
+        }
+
+        StandardButton {
+            kind: StandardButtonKind.cancel;
+            clicked => {
+                ok()
+            }
+        }
+
+        StandardButton {
+            kind: StandardButtonKind.ok;
+            clicked => {
+                record-tases(paths, fastforward-speed, run-as-merged);
+            }
+        }
+    }
+    if state == TasRecordingState.Running: Dialog {
         Text {
             text: "";
         }
 
         StandardButton {
             kind: StandardButtonKind.abort;
-            enabled: running;
             clicked => {
                 abort()
             }
         }
 
         StandardButton {
-            kind: StandardButtonKind.retry;
-            enabled: !running && false;
+            enabled: false;
+            kind: StandardButtonKind.ok;
+        }
+    }
+    if state == TasRecordingState.DoneSuccess: Dialog {
+        Text {
+            text: "";
+        }
+
+        StandardButton {
+            kind: StandardButtonKind.ok;
             clicked => {
-                retry()
+                ok();
+            }
+        }
+    }
+    if state == TasRecordingState.DoneError: Dialog {
+        Text {
+            text: "";
+        }
+
+        StandardButton {
+            kind: StandardButtonKind.retry;
+            clicked => {
+                record-tases(paths, fastforward-speed, run-as-merged);
             }
         }
 
         StandardButton {
             kind: StandardButtonKind.ok;
-            enabled: !running;
             clicked => {
-                ok()
+                ok();
             }
         }
     }
