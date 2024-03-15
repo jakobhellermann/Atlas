@@ -74,6 +74,7 @@ pub fn main() -> Result<()> {
 
     main_window.on_delete_recent_recordings({
         let physics_inspector = physics_inspector.clone();
+        let recordings = Rc::clone(&recordings);
         let handle = main_window.as_weak();
         move || {
             let handle = handle.unwrap();
@@ -84,6 +85,19 @@ pub fn main() -> Result<()> {
                 Err(e) => handle.set_error(format!("{e:?}").into()),
                 Ok(new) => recordings.set_vec(new),
             }
+        }
+    });
+    main_window.on_refresh_recordings({
+        let recordings = Rc::clone(&recordings);
+        let physics_inspector = physics_inspector.clone();
+        let handle = main_window.as_weak();
+        move || {
+            recordings.set_vec(Vec::new());
+            let handle = handle.unwrap();
+            match read_recordings(&physics_inspector) {
+                Err(e) => handle.set_error(format!("{e:?}").into()),
+                Ok(new) => recordings.set_vec(new),
+            };
         }
     });
     main_window.on_record_tases({
@@ -240,17 +254,24 @@ fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<CCTRecord
 
     Ok(recent_recordings
         .into_iter()
-        .map(|(i, layout)| CCTRecording {
-            i: i as i32,
-            chapter_name: format!("{} {}", layout.chapter_name, layout.side_name).into(),
-            sid: layout.sid.as_deref().unwrap_or_default().into(),
-            start_time: DateTime::parse_from_rfc3339(&layout.recording_started)
-                .unwrap()
-                .format("%d.%m.%Y %R")
-                .to_string()
-                .into(),
-            can_render: layout.sid.is_some(),
-            checked: true,
+        .map(|(i, layout)| {
+            let name = if layout.side_name == "A-Side" {
+                layout.chapter_name
+            } else {
+                format!("{} {}", layout.chapter_name, layout.side_name)
+            };
+            CCTRecording {
+                i: i as i32,
+                chapter_name: name.into(),
+                sid: layout.sid.as_deref().unwrap_or_default().into(),
+                start_time: DateTime::parse_from_rfc3339(&layout.recording_started)
+                    .unwrap()
+                    .format("%d.%m.%Y %R")
+                    .to_string()
+                    .into(),
+                can_render: layout.sid.is_some(),
+                checked: true,
+            }
         })
         .collect())
 }

@@ -12,13 +12,17 @@ enum ActiveWindow {
 export component MainWindow inherits Window {
     private property <ActiveWindow> nav: Main;
 
+    default-font-size: 11pt;
+    title: "tbd";
+
     // main
     in property <[CCTRecording]> recordings-model: [];
     in property <string> error: "";
 
     // actions
     callback delete-recent-recordings;
-    callback record-tases;
+    callback record-tases() -> [string];
+    callback refresh-recordings;
     callback retry-record-tases;
 
     // entrypoints
@@ -27,8 +31,8 @@ export component MainWindow inherits Window {
     callback record-ok;
 
     // recording
-    in property <float> record-progress: 0.3;
-    in property <string> record-status: "10f";
+    in property <float> record-progress: 0.0;
+    in property <string> record-status: "";
 
     // render
     in property <bool> rendering: false;
@@ -81,9 +85,22 @@ export component MainWindow inherits Window {
             }
         }
 
-        Text {
-            text: "Recent CCT Recordings";
-            font-size: 18pt;
+        HorizontalLayout {
+            Text {
+                text: "Recent CCT Recordings";
+                font-size: 18pt;
+                horizontal-stretch: 1;
+            }
+
+            Button {
+                horizontal-stretch: 0;
+                colorize-icon: true;
+                icon: @image-url("refresh.svg");
+
+                clicked => {
+                    refresh-recordings();
+                }
+            }
         }
 
         RecordingsTable {
@@ -135,7 +152,7 @@ export component MainWindow inherits Window {
 
             Text {
                 vertical-alignment: center;
-                font-size: 12pt;
+                wrap: word-wrap;
                 text: root.error;
                 color: #ff3333;
             }
