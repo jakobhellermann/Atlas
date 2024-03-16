@@ -17,6 +17,7 @@ use notify_debouncer_full::{
 use slint::{Model, SharedString, VecModel, Weak};
 use std::{
     collections::HashSet,
+    panic::AssertUnwindSafe,
     path::PathBuf,
     rc::Rc,
     time::{Duration, Instant},
@@ -260,13 +261,15 @@ impl RenderState {
         map_bin: &str,
         settings: RenderMapSettings,
     ) -> Result<(RenderResult, Map)> {
-        celesterender::render_map_bin(
-            &self.celeste,
-            &mut self.render_data,
-            &mut self.asset_db,
-            map_bin,
-            settings,
-        )
+        catch(|| {
+            celesterender::render_map_bin(
+                &self.celeste,
+                &mut self.render_data,
+                &mut self.asset_db,
+                map_bin,
+                settings,
+            )
+        })
     }
 }
 
@@ -457,4 +460,20 @@ fn start_watcher(
         .add_root(&recent_recordings_path, notify::RecursiveMode::NonRecursive);
 
     Ok(debouncer)
+}
+
+fn catch<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
+    match std::panic::catch_unwind(AssertUnwindSafe(|| f())) {
+        Ok(Ok(val)) => Ok(val),
+        Ok(Err(val)) => Err(val),
+        Err(e) => {
+            if let Some(s) = e.downcast_ref::<String>() {
+                Err(anyhow::anyhow!("panic: {s}"))
+            } else if let Some(s) = e.downcast_ref::<&str>() {
+                Err(anyhow::anyhow!("panic: {s}"))
+            } else {
+                Err(anyhow::anyhow!("panicked"))
+            }
+        }
+    }
 }
