@@ -144,8 +144,21 @@ pub fn main() -> Result<()> {
             let handle = handle.clone();
             let physics_inspector = physics_inspector.clone();
             std::thread::spawn(move || {
+                let mut last_progress = (0, 0.0);
+
                 let result =
                     debugrc.run_tases_fastforward(&files, speedup, run_as_merged, |status| {
+                        let percentage_in_tas = status
+                            .current_frame
+                            .parse::<u32>()
+                            .ok()
+                            .and_then(|current| {
+                                let total = status.total_frames.parse::<u32>().ok()?;
+                                Some((current, total))
+                            })
+                            .map(|(current, total)| current as f32 / total as f32)
+                            .unwrap_or(1.0);
+
                         let (msg, percentage) = if let Some(origin) = status.origin {
                             let msg = format!(
                                 "{origin} {}/{}: {}/{}",
@@ -154,24 +167,17 @@ pub fn main() -> Result<()> {
                                 status.current_frame,
                                 status.total_frames
                             );
-                            let percentage = status.current_file as f32 / status.total_files as f32;
+                            let percentage = (status.current_file as f32
+                                + percentage_in_tas.max(last_progress.1))
+                                / status.total_files as f32;
+
                             (msg, percentage)
                         } else {
                             let msg = format!("{}/{}", status.current_frame, status.total_frames);
 
-                            let percentage = status
-                                .current_frame
-                                .parse::<u32>()
-                                .ok()
-                                .and_then(|current| {
-                                    let total = status.total_frames.parse::<u32>().ok()?;
-                                    Some((current, total))
-                                })
-                                .map(|(current, total)| current as f32 / total as f32)
-                                .unwrap_or(1.0);
-
-                            (msg, percentage)
+                            (msg, percentage_in_tas)
                         };
+                        last_progress = (status.current_file, percentage_in_tas);
 
                         handle
                             .upgrade_in_event_loop(move |handle| {
