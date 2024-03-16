@@ -226,7 +226,7 @@ fn render_recordings(
     mut only_include_visited_rooms: bool,
     on_error: impl Fn(anyhow::Error),
 ) {
-    for (sid, recordings) in sids {
+    for (sid, recordings) in sids.into_iter().rev() {
         let visited_rooms = if only_include_visited_rooms {
             let mut rooms = HashSet::new();
             for &recording in &recordings {
