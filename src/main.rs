@@ -207,7 +207,7 @@ impl RenderState {
             celeste: celeste.clone(),
             physics_inspector: PhysicsInspector::new(celeste),
             asset_db: AssetDb::new(ModLookup::all_mods(celeste)?),
-            render_data: CelesteRenderData::base(&celeste)?,
+            render_data: CelesteRenderData::base(celeste)?,
         })
     }
 
@@ -219,7 +219,7 @@ impl RenderState {
             sid,
             settings,
         )
-        .with_context(|| format!("{sid}"))?;
+        .with_context(|| sid.to_string())?;
 
         Ok((result, map))
     }
