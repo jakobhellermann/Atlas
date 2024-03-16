@@ -43,19 +43,25 @@ pub fn main() -> Result<()> {
         let mut state = RenderState::new(&celeste)?;
 
         move |width, only_include_visited_rooms| {
-            let sids: IndexMap<String, Vec<_>> =
+            let map_bins: IndexMap<String, Vec<_>> =
                 recordings.iter().fold(IndexMap::new(), |mut acc, item| {
                     if item.checked {
-                        acc.entry(item.sid.into()).or_default().push(item.i);
+                        acc.entry(item.map_bin.into()).or_default().push(item.i);
                     }
                     acc
                 });
 
             let handle = handle.unwrap();
             handle.set_rendering(true);
-            render_recordings(sids, &mut state, width, only_include_visited_rooms, |e| {
-                handle.set_error(format!("{e:?}").into());
-            });
+            render_recordings(
+                map_bins,
+                &mut state,
+                width,
+                only_include_visited_rooms,
+                |e| {
+                    handle.set_error(format!("{e:?}").into());
+                },
+            );
             handle.set_rendering(false);
         }
     });
@@ -206,7 +212,7 @@ impl RenderState {
     }
 
     fn render(&mut self, sid: &str, settings: RenderMapSettings) -> Result<(RenderResult, Map)> {
-        let (result, map) = celesterender::render_map_sid(
+        let (result, map) = celesterender::render_map_bin(
             &self.celeste,
             &mut self.render_data,
             &mut self.asset_db,
@@ -304,16 +310,22 @@ fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<CCTRecord
             } else {
                 format!("{} {}", layout.chapter_name, layout.side_name)
             };
+
+            let is_vanilla = layout.sid.map_or(false, |sid| sid.starts_with("Celeste/"));
+            let map_bin = layout.map_bin.as_deref().map(|bin| match is_vanilla {
+                true => format!("Celeste/{bin}"),
+                false => bin.into(),
+            });
             CCTRecording {
                 i: i as i32,
                 chapter_name: name.into(),
-                sid: layout.sid.as_deref().unwrap_or_default().into(),
+                map_bin: map_bin.unwrap_or_default().into(),
                 start_time: DateTime::parse_from_rfc3339(&layout.recording_started)
                     .unwrap()
                     .format("%d.%m.%Y %R")
                     .to_string()
                     .into(),
-                can_render: layout.sid.is_some(),
+                can_render: layout.map_bin.is_some(),
                 checked: true,
             }
         })

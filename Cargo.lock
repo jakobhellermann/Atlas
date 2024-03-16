@@ -420,6 +420,7 @@ dependencies = [
  "celesteloader",
  "elsa",
  "fastrand",
+ "rayon",
  "roxmltree",
  "serde-roxmltree",
  "tiny-skia",
