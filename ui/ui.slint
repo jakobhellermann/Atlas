@@ -22,7 +22,8 @@ export component MainWindow inherits Window {
     // actions
     callback delete-recent-recordings;
     callback refresh-recordings;
-    callback pick-tas-files() -> [string];
+    callback pick-tas-files();
+    callback pick-tas-files-done([string]);
 
     // entrypoints
     callback record-update(float, string, bool);
@@ -45,6 +46,12 @@ export component MainWindow inherits Window {
 
     record-done(success) => {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
+    }
+    pick-tas-files-done(paths) => {
+        record-paths = paths;
+        if record-paths.length > 0 {
+            nav = ActiveWindow.Record;
+        }
     }
 
     preferred-width: 1080px;
@@ -82,10 +89,7 @@ export component MainWindow inherits Window {
             Button {
                 clicked => {
                     error = "";
-                    record-paths = pick-tas-files();
-                    if record-paths.length > 0 {
-                        nav = ActiveWindow.Record;
-                    }
+                    pick-tas-files();
                 }
 
                 text: "Record TASes";

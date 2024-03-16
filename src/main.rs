@@ -94,16 +94,27 @@ pub fn main() -> Result<()> {
             };
         }
     });
-    main_window.on_pick_tas_files(move || {
-        let files = native_dialog::FileDialog::new()
-            .add_filter("TAS", &["tas"])
-            .show_open_multiple_file()
-            .unwrap();
-        let files = files
-            .into_iter()
-            .map(|file| file.to_str().unwrap().into())
-            .collect::<Vec<SharedString>>();
-        Rc::new(VecModel::from(files)).into()
+    main_window.on_pick_tas_files({
+        let handle = main_window.as_weak();
+        move || {
+            let handle = handle.clone();
+            std::thread::spawn(move || {
+                let files = native_dialog::FileDialog::new()
+                    .add_filter("TAS", &["tas"])
+                    .show_open_multiple_file()
+                    .unwrap();
+                let files = files
+                    .into_iter()
+                    .map(|file| file.to_str().unwrap().into())
+                    .collect::<Vec<SharedString>>();
+
+                handle
+                    .upgrade_in_event_loop(|handle| {
+                        handle.invoke_pick_tas_files_done(Rc::new(VecModel::from(files)).into());
+                    })
+                    .unwrap();
+            });
+        }
     });
 
     main_window.on_abort_tas(move || {
