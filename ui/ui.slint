@@ -1,5 +1,5 @@
 import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
-    HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator } from "std-widgets.slint";
+    HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView } from "std-widgets.slint";
 
 import { CCTRecording, RecordingsTable } from "recordings_table.slint";
 import { TasRecording, TasRecordingState } from "tas_recording.slint";
@@ -201,18 +201,48 @@ export component MainWindow inherits Window {
 
             Text {
                 vertical-alignment: center;
+                horizontal-stretch: 1;
                 wrap: word-wrap;
                 text: root.error;
                 color: #ff3333;
             }
 
-            Button {
-                enabled: !rendering && recordings-model.length > 0;
-                clicked => {
-                    root.render(line-width, only-render-visited);
-                }
+            /*pw := PopupWindow {
+                x: root.width - 400px - render-button.width;
+                y: -210px;
+                width: 400px;
+                height: 200px;
 
-                text: "Render";
+                layout := Rectangle {
+                    background: Palette.background;
+                    border-color: Palette.border;
+                    border-width: 1px;
+
+                    ScrollView {
+
+                        pw-text := Text {
+                            vertical-alignment: top;
+                            horizontal-alignment: left;
+
+                            text: error;
+                        }
+                    }
+                }
+            }*/
+
+            VerticalLayout {
+                alignment: end;
+
+                render-button := Button {
+                    enabled: !rendering && recordings-model.length > 0;
+                    clicked => {
+                        error = "";
+                        root.render(line-width, only-render-visited);
+                        // pw.show();
+                    }
+
+                    text: "Render";
+                }
             }
         }
     }
