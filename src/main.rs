@@ -40,29 +40,39 @@ pub fn main() -> Result<()> {
     main_window.on_render({
         let recordings = recordings.clone();
         let handle = main_window.as_weak();
-        let mut state = RenderState::new(&celeste)?;
 
         move |width, only_include_visited_rooms| {
-            let map_bins: IndexMap<String, Vec<_>> =
+            let map_bins: IndexMap<(String, String), Vec<_>> =
                 recordings.iter().fold(IndexMap::new(), |mut acc, item| {
                     if item.checked {
-                        acc.entry(item.map_bin.into()).or_default().push(item.i);
+                        acc.entry((item.map_bin.into(), item.chapter_name.into()))
+                            .or_default()
+                            .push(item.i);
                     }
                     acc
                 });
 
-            let handle = handle.unwrap();
-            handle.set_rendering(true);
-            render_recordings(
-                map_bins,
-                &mut state,
-                width,
-                only_include_visited_rooms,
-                |e| {
-                    handle.set_error(format!("{e:?}").into());
-                },
-            );
-            handle.set_rendering(false);
+            handle.unwrap().set_rendering(true);
+            let celeste = celeste.clone();
+            let handle = handle.clone();
+            std::thread::spawn(move || {
+                let result =
+                    render_recordings(map_bins, &celeste, width, only_include_visited_rooms, |e| {
+                        let msg = format!("{e:?}").into();
+                        handle
+                            .upgrade_in_event_loop(move |handle| handle.set_error(msg))
+                            .unwrap();
+                    });
+                handle
+                    .upgrade_in_event_loop(|handle| {
+                        handle.set_rendering(false);
+
+                        if let Err(e) = result {
+                            handle.set_error(format!("{e:?}").into());
+                        }
+                    })
+                    .unwrap();
+            });
         }
     });
 
@@ -222,28 +232,31 @@ impl RenderState {
         })
     }
 
-    fn render(&mut self, sid: &str, settings: RenderMapSettings) -> Result<(RenderResult, Map)> {
-        let (result, map) = celesterender::render_map_bin(
+    fn render(
+        &mut self,
+        map_bin: &str,
+        settings: RenderMapSettings,
+    ) -> Result<(RenderResult, Map)> {
+        celesterender::render_map_bin(
             &self.celeste,
             &mut self.render_data,
             &mut self.asset_db,
-            sid,
+            map_bin,
             settings,
         )
-        .with_context(|| sid.to_string())?;
-
-        Ok((result, map))
     }
 }
 
 fn render_recordings(
-    sids: IndexMap<String, Vec<i32>>,
-    state: &mut RenderState,
+    map_bins: IndexMap<(String, String), Vec<i32>>,
+    celeste: &CelesteInstallation,
     width: f32,
     mut only_include_visited_rooms: bool,
     on_error: impl Fn(anyhow::Error),
-) {
-    for (sid, recordings) in sids.into_iter().rev() {
+) -> Result<()> {
+    let mut state = RenderState::new(&celeste)?;
+
+    for ((map_bin, name), recordings) in map_bins.into_iter().rev() {
         let visited_rooms = if only_include_visited_rooms {
             cct_visited_rooms(&recordings, &state.physics_inspector).unwrap_or_else(|e| {
                 eprintln!("Couldn't read room layouts, falling back to including all rooms: {e}");
@@ -255,17 +268,17 @@ fn render_recordings(
         };
 
         if let Err(e) = (|| -> Result<()> {
-            let a = std::time::Instant::now();
-            let (mut result, _map) = state.render(
-                &sid,
-                RenderMapSettings {
-                    layer: Layer::ALL,
-                    include_room: &|room| {
-                        !only_include_visited_rooms
-                            || visited_rooms.contains(room.name.trim_start_matches("lvl_"))
-                    },
+            let start = std::time::Instant::now();
+            let settings = RenderMapSettings {
+                layer: Layer::ALL,
+                include_room: &|room| {
+                    !only_include_visited_rooms
+                        || visited_rooms.contains(room.name.trim_start_matches("lvl_"))
                 },
-            )?;
+            };
+            let (mut result, _map) = state
+                .render(&map_bin, settings)
+                .with_context(|| format!("failed to render {name}"))?;
 
             // let size_filled = map.rooms.iter().map(|room| room.bounds.area()).sum::<f32>();
             // let size = result.bounds.area();
@@ -285,10 +298,13 @@ fn render_recordings(
             }
 
             let tmp = std::env::temp_dir();
-            let out_path = tmp.join(format!("{}.png", sid.replace(['/'], "_")));
+            let out_path = tmp.join(format!("{}.png", map_bin.replace(['/'], "_")));
             result.image.save_png(&out_path)?;
 
-            println!("Rendered map {sid} in {:.2}ms", a.elapsed().as_millis());
+            println!(
+                "Rendered map {map_bin} in {:.2}ms",
+                start.elapsed().as_millis()
+            );
 
             opener::open(&out_path)?;
             Ok(())
@@ -297,6 +313,8 @@ fn render_recordings(
             on_error(e);
         }
     }
+
+    Ok(())
 }
 
 fn cct_visited_rooms(
