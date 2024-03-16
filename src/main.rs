@@ -245,23 +245,13 @@ fn render_recordings(
 ) {
     for (sid, recordings) in sids.into_iter().rev() {
         let visited_rooms = if only_include_visited_rooms {
-            let mut rooms = HashSet::new();
-            for &recording in &recordings {
-                let layout = match state.physics_inspector.room_layout(recording as u32) {
-                    Ok(layout) => layout,
-                    Err(e) => {
-                        eprintln!(
-                            "Couldn't read room layouts, falling back to including all rooms: {e}"
-                        );
-                        only_include_visited_rooms = false;
-                        break;
-                    }
-                };
-                rooms.extend(layout.rooms.into_iter().map(|room| room.debug_room_name));
-            }
-            rooms
+            cct_visited_rooms(&recordings, &state.physics_inspector).unwrap_or_else(|e| {
+                eprintln!("Couldn't read room layouts, falling back to including all rooms: {e}");
+                only_include_visited_rooms = false;
+                Default::default()
+            })
         } else {
-            Default::default()
+            HashSet::new()
         };
 
         if let Err(e) = (|| -> Result<()> {
@@ -307,6 +297,18 @@ fn render_recordings(
             on_error(e);
         }
     }
+}
+
+fn cct_visited_rooms(
+    recordings: &[i32],
+    physics_inspector: &PhysicsInspector,
+) -> Result<HashSet<String>> {
+    let mut rooms = HashSet::new();
+    for &recording in recordings {
+        let layout = physics_inspector.room_layout(recording as u32)?;
+        rooms.extend(layout.rooms.into_iter().map(|room| room.debug_room_name));
+    }
+    Ok(rooms)
 }
 
 fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<CCTRecording>> {
