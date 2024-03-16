@@ -108,16 +108,16 @@ pub fn main() -> Result<()> {
         let handle = main_window.as_weak();
         move || {
             let handle = handle.clone();
+
             std::thread::spawn(move || {
-                let files = native_dialog::FileDialog::new()
+                let files = rfd::FileDialog::new()
                     .add_filter("TAS", &["tas"])
-                    .show_open_multiple_file()
-                    .unwrap();
+                    .pick_files()
+                    .unwrap_or_default();
                 let files = files
                     .into_iter()
                     .map(|file| file.to_str().unwrap().into())
                     .collect::<Vec<SharedString>>();
-
                 handle
                     .upgrade_in_event_loop(|handle| {
                         handle.invoke_pick_tas_files_done(Rc::new(VecModel::from(files)).into());

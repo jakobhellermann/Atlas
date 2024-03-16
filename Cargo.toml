@@ -10,7 +10,7 @@ annotate_celeste_map = { version = "0.1.0", path = "../celestetools/crates/annot
 celestedebugrc = { version = "0.1.0", path = "../celestetools/crates/celestedebugrc" }
 
 slint = { version = "1.5", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-femtovg"] }
-native-dialog = "0.7.0"
+rfd = { version = "0.14.0", default-features = false, features = ["gtk3"] }
 opener = "0.6.1"
 
 anyhow = "1.0"
