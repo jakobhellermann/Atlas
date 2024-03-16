@@ -208,6 +208,7 @@ pub fn main() -> Result<()> {
 
                         last_progress = new_progress;
                     });
+                //.and_then(|()| debugrc.get("cct/segmentRecording"));
 
                 handle
                     .upgrade_in_event_loop(move |handle| {
