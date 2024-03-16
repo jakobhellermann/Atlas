@@ -186,7 +186,7 @@ pub fn main() -> Result<()> {
                                 status.total_frames
                             );
                             let percentage = (status.current_file as f32
-                                + percentage_in_tas.max(last_progress.1))
+                                + percentage_in_tas as f32)
                                 / status.total_files as f32;
 
                             (msg, percentage)
@@ -195,14 +195,18 @@ pub fn main() -> Result<()> {
 
                             (msg, percentage_in_tas)
                         };
-                        last_progress = (status.current_file, percentage_in_tas);
+                        let new_progress = (status.current_file, percentage_in_tas);
 
                         handle
                             .upgrade_in_event_loop(move |handle| {
-                                handle.set_record_status_text(msg.into());
+                                if new_progress > last_progress {
+                                    handle.set_record_status_text(msg.into());
+                                }
                                 handle.set_record_progress(percentage);
                             })
                             .unwrap();
+
+                        last_progress = new_progress;
                     });
 
                 handle
