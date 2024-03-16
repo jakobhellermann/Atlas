@@ -47,8 +47,8 @@ export component MainWindow inherits Window {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
     }
 
-    preferred-width: 720px;
-    preferred-height: 600px;
+    preferred-width: 1080px;
+    preferred-height: 720px;
 
     if nav == ActiveWindow.Record: r := TasRecording {
         state: record-state;
