@@ -9,6 +9,13 @@ enum ActiveWindow {
     Record,
 }
 
+struct RenderSettings {
+    width: float,
+    only-render-visited: bool,
+    color-mode: string,
+    anti-alias: bool,
+}
+
 export component MainWindow inherits Window {
     private property <ActiveWindow> nav: Main;
 
@@ -40,9 +47,8 @@ export component MainWindow inherits Window {
 
     // render
     in property <bool> rendering: false;
-    callback render(float, bool);
-    private property <float> line-width: 2;
-    in-out property <bool> only-render-visited;
+    callback render(RenderSettings);
+    private property <RenderSettings> render-settings: { width: 2, only-render-visited: false, color-mode: "Gradient", anti-alias: false };
 
     record-done(success) => {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
@@ -146,12 +152,12 @@ export component MainWindow inherits Window {
                     }
 
                     slider := Slider {
-                        value: line-width;
+                        value: render-settings.width;
                         minimum: 1.0;
                         maximum: 20.0;
 
                         changed(val) => {
-                            line-width = val;
+                            render-settings.width = val;
                         }
                     }
 
@@ -171,7 +177,12 @@ export component MainWindow inherits Window {
                     }
 
                     ComboBox {
-                        model: ["Gradient"];
+                        current-value: render-settings.color-mode;
+                        // Keep in sync with render()
+                        model: ["Gradient", "StState", "Red"];
+                        selected(val) => {
+                            render-settings.color-mode = val;
+                        }
                     }
                 }
 
@@ -186,9 +197,9 @@ export component MainWindow inherits Window {
                     }
 
                     CheckBox {
-                        checked: only-render-visited;
+                        checked: render-settings.only-render-visited;
                         toggled => {
-                            only-render-visited = self.checked;
+                            render-settings.only-render-visited = self.checked;
                         }
                     }
                 }
@@ -237,7 +248,7 @@ export component MainWindow inherits Window {
                     enabled: !rendering && recordings-model.length > 0;
                     clicked => {
                         error = "";
-                        root.render(line-width, only-render-visited);
+                        root.render(render-settings);
                         // pw.show();
                     }
 

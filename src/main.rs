@@ -1,5 +1,6 @@
 #![windows_subsystem = "windows"]
 
+use annotate_celeste_map::{ColorMode, LineSettings};
 use anyhow::{Context, Result};
 use celestedebugrc::DebugRC;
 use celesteloader::{cct_physics_inspector::PhysicsInspector, map::Map, CelesteInstallation};
@@ -41,7 +42,14 @@ pub fn main() -> Result<()> {
         let recordings = recordings.clone();
         let handle = main_window.as_weak();
 
-        move |width, only_include_visited_rooms| {
+        move |settings| {
+            let color_mode = match settings.color_mode.as_str() {
+                "Gradient" => ColorMode::Gradient,
+                "StState" => ColorMode::State,
+                "Red" => ColorMode::Color([255, 0, 0, 255]),
+                _ => unreachable!(),
+            };
+
             let map_bins: IndexMap<(String, String), Vec<_>> =
                 recordings.iter().fold(IndexMap::new(), |mut acc, item| {
                     if item.checked {
@@ -56,13 +64,22 @@ pub fn main() -> Result<()> {
             let celeste = celeste.clone();
             let handle = handle.clone();
             std::thread::spawn(move || {
-                let result =
-                    render_recordings(map_bins, &celeste, width, only_include_visited_rooms, |e| {
+                let result = render_recordings(
+                    map_bins,
+                    &celeste,
+                    LineSettings {
+                        width: settings.width,
+                        color_mode,
+                        anti_alias: settings.anti_alias,
+                    },
+                    settings.only_render_visited,
+                    |e| {
                         let msg = format!("{e:?}").into();
                         handle
                             .upgrade_in_event_loop(move |handle| handle.set_error(msg))
                             .unwrap();
-                    });
+                    },
+                );
                 handle
                     .upgrade_in_event_loop(|handle| {
                         handle.set_rendering(false);
@@ -256,7 +273,7 @@ impl RenderState {
 fn render_recordings(
     map_bins: IndexMap<(String, String), Vec<i32>>,
     celeste: &CelesteInstallation,
-    width: f32,
+    line_settings: LineSettings,
     mut only_include_visited_rooms: bool,
     on_error: impl Fn(anyhow::Error),
 ) -> Result<()> {
@@ -275,7 +292,7 @@ fn render_recordings(
 
         if let Err(e) = (|| -> Result<()> {
             let start = std::time::Instant::now();
-            let settings = RenderMapSettings {
+            let render_settings = RenderMapSettings {
                 layer: Layer::ALL,
                 include_room: &|room| {
                     !only_include_visited_rooms
@@ -283,7 +300,7 @@ fn render_recordings(
                 },
             };
             let (mut result, _map) = state
-                .render(&map_bin, settings)
+                .render(&map_bin, render_settings)
                 .with_context(|| format!("failed to render {name}"))?;
 
             // let size_filled = map.rooms.iter().map(|room| room.bounds.area()).sum::<f32>();
@@ -299,7 +316,7 @@ fn render_recordings(
                     &state.physics_inspector,
                     recording as u32,
                     result.bounds,
-                    width,
+                    line_settings,
                 )?;
             }
 
