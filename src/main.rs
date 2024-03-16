@@ -316,11 +316,14 @@ fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<CCTRecord
     Ok(recent_recordings
         .into_iter()
         .map(|(i, layout)| {
-            let name = if layout.side_name == "A-Side" {
-                layout.chapter_name
-            } else {
-                format!("{} {}", layout.chapter_name, layout.side_name)
+            let has_map_bin = layout.map_bin.is_some();
+            let mut name = match layout.side_name.as_str() {
+                "A-Side" => layout.chapter_name,
+                _ => format!("{} {}", layout.chapter_name, layout.side_name),
             };
+            if !has_map_bin {
+                name = format!("[old CCT] {name}");
+            }
 
             let is_vanilla = layout.sid.map_or(false, |sid| sid.starts_with("Celeste/"));
             let map_bin = layout.map_bin.as_deref().map(|bin| match is_vanilla {
@@ -336,7 +339,7 @@ fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<CCTRecord
                     .format("%d.%m.%Y %R")
                     .to_string()
                     .into(),
-                can_render: layout.map_bin.is_some(),
+                can_render: has_map_bin,
                 checked: true,
             }
         })
