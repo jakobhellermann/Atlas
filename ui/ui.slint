@@ -314,22 +314,39 @@ export component MainWindow inherits Window {
             recordings: recordings;
         }
 
-        HorizontalLayout {
-            VerticalLayout {
+        GridLayout {
+            spacing: 8px;
+            Row {
                 Text {
                     font-size: 18pt;
                     text: "Render Settings";
                 }
+            }
 
-                HorizontalBox {
-                    padding-left: 0;
-                    padding-bottom: 0;
+            Row {
+                color-row := Text {
+                    vertical-alignment: center;
+                    text: "Color";
+                }
 
-                    Text {
-                        vertical-alignment: center;
-                        text: "Line Width";
+                ComboBox {
+                    current-value: render-settings.color-mode;
+                    // Keep in sync with render()
+                        model: ["Gradient", "StState", "Red"];
+                    selected(val) => {
+                        render-settings.color-mode = val;
                     }
+                }
+            }
 
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Line Width";
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
                     slider := Slider {
                         value: render-settings.width;
                         minimum: 1.0;
@@ -344,37 +361,16 @@ export component MainWindow inherits Window {
                         text: Math.round(slider.value * 100) / 100;
                     }
                 }
+            }
 
-                HorizontalBox {
-                    padding-left: 0;
-                    padding-bottom: 0;
-                    alignment: start;
-
-                    Text {
-                        vertical-alignment: center;
-                        text: "Color";
-                    }
-
-                    ComboBox {
-                        current-value: render-settings.color-mode;
-                        // Keep in sync with render()
-                        model: ["Gradient", "StState", "Red"];
-                        selected(val) => {
-                            render-settings.color-mode = val;
-                        }
-                    }
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Only include visited rooms";
                 }
 
-                HorizontalBox {
-                    padding-left: 0;
-                    padding-bottom: 0;
-                    alignment: start;
-
-                    Text {
-                        vertical-alignment: center;
-                        text: "Only include visited rooms";
-                    }
-
+                HorizontalLayout {
+                    alignment: LayoutAlignment.start;
                     CheckBox {
                         checked: render-settings.only-render-visited;
                         toggled => {
@@ -383,10 +379,38 @@ export component MainWindow inherits Window {
                     }
                 }
             }
+
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Line Antialiasing";
+                }
+
+                HorizontalLayout {
+                    alignment: LayoutAlignment.start;
+                    CheckBox {
+                        checked: render-settings.anti-alias;
+                        toggled => {
+                            render-settings.anti-alias = self.checked;
+                        }
+                    }
+                }
+            }
         }
 
-        HorizontalBox {
-            padding: 0px;
+        HorizontalLayout {
+            VerticalLayout {
+
+                HorizontalBox {
+                    padding-left: 0;
+                    padding-bottom: 0;
+                    alignment: start;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            padding-top: 16px;
             alignment: space-between;
 
             Text {
@@ -397,29 +421,6 @@ export component MainWindow inherits Window {
                 color: #ff3333;
             }
 
-            /*pw := PopupWindow {
-                x: root.width - 400px - render-button.width;
-                y: -210px;
-                width: 400px;
-                height: 200px;
-
-                layout := Rectangle {
-                    background: Palette.background;
-                    border-color: Palette.border;
-                    border-width: 1px;
-
-                    ScrollView {
-
-                        pw-text := Text {
-                            vertical-alignment: top;
-                            horizontal-alignment: left;
-
-                            text: error;
-                        }
-                    }
-                }
-            }*/
-
             VerticalLayout {
                 alignment: end;
 
@@ -428,7 +429,6 @@ export component MainWindow inherits Window {
                     clicked => {
                         error = "";
                         root.render(render-settings);
-                        // pw.show();
                     }
 
                     text: "Render";
