@@ -95,6 +95,7 @@ export component MainWindow inherits Window {
             Button {
                 clicked => {
                     error = "";
+                    record-state = TasRecordingState.Prepare;
                     pick-tas-files();
                 }
 

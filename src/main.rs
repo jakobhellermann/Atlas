@@ -150,7 +150,8 @@ pub fn main() -> Result<()> {
     });
 
     main_window.on_abort_tas(move || {
-        let _res = DebugRC::new().send_tas_keybind("Start");
+        // let _res = DebugRC::new().console("invoke Manager.DisableRun");
+        // dbg!(_res);
     });
     main_window.on_record_tases({
         let debugrc = DebugRC::new();
@@ -166,7 +167,7 @@ pub fn main() -> Result<()> {
             let handle = handle.clone();
             let physics_inspector = physics_inspector.clone();
             std::thread::spawn(move || {
-                let mut last_progress = (0, 0.0);
+                let mut last_progress = 0.0;
 
                 let result = debugrc
                     .run_tases_fastforward(&files, speedup, run_as_merged, |status| {
@@ -181,9 +182,9 @@ pub fn main() -> Result<()> {
                             .map(|(current, total)| current as f32 / total as f32)
                             .unwrap_or(1.0);
 
-                        let (msg, percentage) = if let Some(origin) = status.origin {
+                        let (msg, new_progress) = if let Some(origin) = status.origin {
                             let msg = format!(
-                                "{origin} {}/{}: {}/{}",
+                                "{}/{} {origin}: {}/{}",
                                 status.current_file,
                                 status.total_files,
                                 status.current_frame,
@@ -192,21 +193,18 @@ pub fn main() -> Result<()> {
                             let percentage = (status.current_file as f32
                                 + percentage_in_tas as f32)
                                 / status.total_files as f32;
-
                             (msg, percentage)
                         } else {
                             let msg = format!("{}/{}", status.current_frame, status.total_frames);
-
                             (msg, percentage_in_tas)
                         };
-                        let new_progress = (status.current_file, percentage_in_tas);
 
                         handle
                             .upgrade_in_event_loop(move |handle| {
                                 if new_progress > last_progress {
-                                    handle.set_record_status_text(msg.into());
+                                    handle.set_record_progress(new_progress);
                                 }
-                                handle.set_record_progress(percentage);
+                                handle.set_record_status_text(msg.into());
                             })
                             .unwrap();
 
@@ -444,7 +442,9 @@ fn start_watcher(
                     let start_reading = Instant::now();
                     let model = handle.get_recordings_model();
                     match read_recordings(&physics_inspector) {
-                        Err(e) => handle.set_error(format!("{e:?}").into()),
+                        Err(e) => {
+                            eprintln!("{:?}", e.context("failed to reload recordings"));
+                        }
                         Ok(new) => model
                             .as_any()
                             .downcast_ref::<VecModel<CCTRecording>>()
