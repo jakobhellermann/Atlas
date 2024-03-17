@@ -168,8 +168,8 @@ pub fn main() -> Result<()> {
             std::thread::spawn(move || {
                 let mut last_progress = (0, 0.0);
 
-                let result =
-                    debugrc.run_tases_fastforward(&files, speedup, run_as_merged, |status| {
+                let result = debugrc
+                    .run_tases_fastforward(&files, speedup, run_as_merged, |status| {
                         let percentage_in_tas = status
                             .current_frame
                             .parse::<u32>()
@@ -211,8 +211,12 @@ pub fn main() -> Result<()> {
                             .unwrap();
 
                         last_progress = new_progress;
+                    })
+                    .map(|_| {
+                        if let Err(e) = debugrc.get("cct/segmentRecording") {
+                            eprintln!("Failed to segment recording: {e}");
+                        }
                     });
-                //.and_then(|()| debugrc.get("cct/segmentRecording"));
 
                 handle
                     .upgrade_in_event_loop(move |handle| {
