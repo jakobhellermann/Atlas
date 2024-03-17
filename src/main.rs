@@ -14,7 +14,7 @@ use notify_debouncer_full::{
     notify::{self, RecommendedWatcher, Watcher},
     DebounceEventResult, Debouncer, FileIdMap,
 };
-use slint::{Model, SharedString, VecModel, Weak};
+use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
 use std::{
     collections::HashSet,
     panic::AssertUnwindSafe,
@@ -120,8 +120,8 @@ pub fn main() -> Result<()> {
         }
     });
 
-    // callbacks
-    main_window.on_render({
+    let render_global = main_window.global::<Render>();
+    render_global.on_render({
         let recordings = recordings.clone();
         let handle = main_window.as_weak();
 
@@ -151,7 +151,7 @@ pub fn main() -> Result<()> {
                 return;
             }
 
-            handle.unwrap().set_rendering(true);
+            handle.unwrap().global::<Render>().set_rendering(true);
             let celeste = celeste.clone();
             let handle = handle.clone();
             std::thread::spawn(move || {
@@ -173,7 +173,7 @@ pub fn main() -> Result<()> {
                 );
                 handle
                     .upgrade_in_event_loop(|handle| {
-                        handle.set_rendering(false);
+                        handle.global::<Render>().set_rendering(false);
 
                         if let Err(e) = result {
                             handle.set_error(format!("{e:?}").into());

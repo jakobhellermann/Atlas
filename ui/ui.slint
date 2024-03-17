@@ -3,9 +3,9 @@ import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
 
 import { TasRecording, TasRecordingState } from "components/tas_recording.slint";
 import { MapRecordings, RecordingsList, Recordings } from "components/recordings_list.slint";
-import { RenderSettings, RenderSettingsTable } from "components/render_settings.slint";
+import { Render, RenderSettings, RenderSettingsTable } from "components/render_settings.slint";
 
-export { Recordings }
+export { Recordings, Render }
 
 enum ActiveWindow {
     Main,
@@ -65,8 +65,6 @@ export component MainWindow inherits Window {
     in-out property <string> record-status-text;
 
     // render
-    in property <bool> rendering: false;
-    callback render(RenderSettings);
 
     record-done(success) => {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
@@ -89,11 +87,14 @@ export component MainWindow inherits Window {
                 Recordings.toggle-select-all();
                 return EventResult.accept;
             }
+            if (event.modifiers.control && event.text == "\n") {
+                Render.render(Render.render-settings);
+            }
             EventResult.reject
         }
     }
 
-    if nav == ActiveWindow.Record: r := TasRecording {
+    if nav == ActiveWindow.Record: TasRecording {
         state: record-state;
         paths: record-paths;
         progress: record-progress;
@@ -141,7 +142,7 @@ export component MainWindow inherits Window {
             }
         }
 
-        render-settings := RenderSettingsTable {
+        RenderSettingsTable {
             padding-top: 8px;
         }
 
@@ -161,10 +162,10 @@ export component MainWindow inherits Window {
                 alignment: end;
 
                 render-button := Button {
-                    enabled: !rendering;
+                    enabled: !Render.rendering;
                     clicked => {
                         error = "";
-                        root.render(render-settings.render-settings);
+                        Render.render(Render.render-settings);
                     }
 
                     text: "Render";

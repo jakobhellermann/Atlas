@@ -8,8 +8,13 @@ export struct RenderSettings {
     anti-alias: bool,
 }
 
+export global Render {
+    callback render(RenderSettings);
+    in property <RenderSettings> render-settings: { width: 2, only-render-visited: false, color-mode: "Gradient", anti-alias: false };
+    in property <bool> rendering: false;
+}
+
 export component RenderSettingsTable inherits GridLayout {
-    out property <RenderSettings> render-settings: { width: 2, only-render-visited: false, color-mode: "Gradient", anti-alias: false };
 
     spacing: 8px;
     Row {
@@ -27,11 +32,11 @@ export component RenderSettingsTable inherits GridLayout {
         }
 
         ComboBox {
-            current-value: render-settings.color-mode;
+            current-value: Render.render-settings.color-mode;
             // Keep in sync with render()
             model: ["Gradient", "StState", "Red"];
             selected(val) => {
-                render-settings.color-mode = val;
+                Render.render-settings.color-mode = val;
             }
         }
     }
@@ -45,12 +50,12 @@ export component RenderSettingsTable inherits GridLayout {
         HorizontalLayout {
             spacing: 8px;
             slider := Slider {
-                value: render-settings.width;
+                value: Render.render-settings.width;
                 minimum: 1.0;
                 maximum: 20.0;
 
                 changed(val) => {
-                    render-settings.width = val;
+                    Render.render-settings.width = val;
                 }
             }
 
@@ -69,9 +74,9 @@ export component RenderSettingsTable inherits GridLayout {
         HorizontalLayout {
             alignment: LayoutAlignment.start;
             CheckBox {
-                checked: render-settings.only-render-visited;
+                checked: Render.render-settings.only-render-visited;
                 toggled => {
-                    render-settings.only-render-visited = self.checked;
+                    Render.render-settings.only-render-visited = self.checked;
                 }
             }
         }
@@ -86,9 +91,9 @@ export component RenderSettingsTable inherits GridLayout {
         HorizontalLayout {
             alignment: LayoutAlignment.start;
             CheckBox {
-                checked: render-settings.anti-alias;
+                checked: Render.render-settings.anti-alias;
                 toggled => {
-                    render-settings.anti-alias = self.checked;
+                    Render.render-settings.anti-alias = self.checked;
                 }
             }
         }
