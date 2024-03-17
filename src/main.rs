@@ -53,7 +53,7 @@ pub fn main() -> Result<()> {
 
             let map_bins: IndexMap<(String, String), Vec<_>> =
                 recordings.iter().fold(IndexMap::new(), |mut acc, item| {
-                    if item.checked {
+                    if item.checked && item.can_render {
                         acc.entry((item.map_bin.into(), item.chapter_name.into()))
                             .or_default()
                             .push(item.i);
@@ -391,7 +391,7 @@ fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<CCTRecord
                     .to_string()
                     .into(),
                 can_render: has_map_bin,
-                checked: true,
+                checked: has_map_bin,
             }
         })
         .collect())
