@@ -92,6 +92,13 @@ export component RecordingsList inherits VerticalLayout {
         }
     }
 
+    if recordings.length == 0: HorizontalLayout {
+        padding-top: 8px;
+        Text {
+            text: "No recordings found.";
+        }
+    }
+
     ListView {
         for map in recordings: VerticalLayout {
             HorizontalLayout {
