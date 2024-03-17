@@ -1,0 +1,45 @@
+
+import { Palette } from "std-widgets.slint";
+
+export component ExpandButton inherits VerticalLayout {
+    in-out property <bool> expanded;
+    in property <bool> enabled: true;
+
+    public function toggle() {
+        expanded = !expanded;
+    }//
+    
+    alignment: center;
+
+    ta := TouchArea {
+        enabled: enabled;
+        width: 24px;
+        height: 24px;
+
+        clicked => {
+            expanded = !expanded
+        }
+
+        img := Image {
+            vertical-alignment: center;
+            width: 24px;
+            height: 24px;
+            source: @image-url("../assets/dropdown.svg");
+            colorize: enabled ? Palette.control-foreground : Palette.control-foreground.darker(1.0);
+
+            animate rotation-angle {
+                duration: 200ms;
+                easing: ease-out;
+            }
+        }
+    }
+
+    states [
+        default when !expanded: {
+            img.rotation-angle: 0;
+        }
+        expanded when expanded: {
+            img.rotation-angle: -180deg;
+        }
+    ]
+}

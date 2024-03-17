@@ -1,0 +1,96 @@
+
+import { ComboBox, Slider, CheckBox } from "std-widgets.slint";
+
+export struct RenderSettings {
+    width: float,
+    only-render-visited: bool,
+    color-mode: string,
+    anti-alias: bool,
+}
+
+export component RenderSettingsTable inherits GridLayout {
+    out property <RenderSettings> render-settings: { width: 2, only-render-visited: false, color-mode: "Gradient", anti-alias: false };
+
+    spacing: 8px;
+    Row {
+        Text {
+            font-size: 18pt;
+            text: "Render Settings";
+        }
+    }
+
+    Row {
+        color-row := Text {
+            vertical-alignment: center;
+            width: 30%;
+            text: "Color";
+        }
+
+        ComboBox {
+            current-value: render-settings.color-mode;
+            // Keep in sync with render()
+            model: ["Gradient", "StState", "Red"];
+            selected(val) => {
+                render-settings.color-mode = val;
+            }
+        }
+    }
+
+    Row {
+        Text {
+            vertical-alignment: center;
+            text: "Line Width";
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            slider := Slider {
+                value: render-settings.width;
+                minimum: 1.0;
+                maximum: 20.0;
+
+                changed(val) => {
+                    render-settings.width = val;
+                }
+            }
+
+            Text {
+                text: Math.round(slider.value * 100) / 100;
+            }
+        }
+    }
+
+    Row {
+        Text {
+            vertical-alignment: center;
+            text: "Only include visited rooms";
+        }
+
+        HorizontalLayout {
+            alignment: LayoutAlignment.start;
+            CheckBox {
+                checked: render-settings.only-render-visited;
+                toggled => {
+                    render-settings.only-render-visited = self.checked;
+                }
+            }
+        }
+    }
+
+    Row {
+        Text {
+            vertical-alignment: center;
+            text: "Line Antialiasing";
+        }
+
+        HorizontalLayout {
+            alignment: LayoutAlignment.start;
+            CheckBox {
+                checked: render-settings.anti-alias;
+                toggled => {
+                    render-settings.anti-alias = self.checked;
+                }
+            }
+        }
+    }
+}

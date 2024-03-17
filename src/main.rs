@@ -34,7 +34,8 @@ pub fn main() -> Result<()> {
 
     let recordings = Rc::new(VecModel::from(read_recordings(&physics_inspector)?));
 
-    main_window.global::<Recordings>().on_toggle_expand_map({
+    let recordings_global = &main_window.global::<Recordings>();
+    recordings_global.on_toggle_expand_map({
         let recordings = recordings.clone();
         move |map_bin| {
             let Some(list) = recordings
@@ -51,25 +52,51 @@ pub fn main() -> Result<()> {
             }
         }
     });
-    main_window
-        .global::<Recordings>()
-        .on_toggle_expand_map_recording({
-            let recordings = recordings.clone();
-            move |map_bin, _| {
-                let Some((j, mut list)) = recordings
-                    .iter()
-                    .enumerate()
-                    .find(|(_, recording)| recording.map_bin == map_bin)
-                else {
-                    return;
-                };
+    recordings_global.on_toggle_expand_map_recording({
+        let recordings = recordings.clone();
+        move |map_bin, _| {
+            let Some((j, mut list)) = recordings
+                .iter()
+                .enumerate()
+                .find(|(_, recording)| recording.map_bin == map_bin)
+            else {
+                return;
+            };
 
-                let any_checked = list.recordings.iter().any(|rec| rec.checked);
-                list.checked = any_checked;
-                recordings.set_row_data(j, list);
+            let any_checked = list.recordings.iter().any(|rec| rec.checked);
+            list.checked = any_checked;
+            recordings.set_row_data(j, list);
+        }
+    });
+    recordings_global.on_refresh_recordings({
+        let recordings = recordings.clone();
+        let physics_inspector = physics_inspector.clone();
+        let handle = main_window.as_weak();
+        move || {
+            recordings.set_vec(Vec::new());
+            let handle = handle.unwrap();
+
+            match read_recordings(&physics_inspector) {
+                Err(e) => handle.set_error(format!("{e:?}").into()),
+                Ok(new) => recordings.set_vec(new),
+            };
+        }
+    });
+    recordings_global.on_delete_recordings({
+        let physics_inspector = physics_inspector.clone();
+        let recordings = Rc::clone(&recordings);
+        let handle = main_window.as_weak();
+        move || {
+            let handle = handle.unwrap();
+            if let Err(e) = physics_inspector.delete_recent_recordings() {
+                handle.set_error(format!("{e:?}").into());
             }
-        });
-    main_window.set_recordings(recordings.clone().into());
+            match read_recordings(&physics_inspector) {
+                Err(e) => handle.set_error(format!("{e:?}").into()),
+                Ok(new) => recordings.set_vec(new),
+            }
+        }
+    });
 
     // callbacks
     main_window.on_render({
@@ -135,35 +162,6 @@ pub fn main() -> Result<()> {
         }
     });
 
-    main_window.on_delete_recent_recordings({
-        let physics_inspector = physics_inspector.clone();
-        let recordings = Rc::clone(&recordings);
-        let handle = main_window.as_weak();
-        move || {
-            let handle = handle.unwrap();
-            if let Err(e) = physics_inspector.delete_recent_recordings() {
-                handle.set_error(format!("{e:?}").into());
-            }
-            match read_recordings(&physics_inspector) {
-                Err(e) => handle.set_error(format!("{e:?}").into()),
-                Ok(new) => recordings.set_vec(new),
-            }
-        }
-    });
-    main_window.on_refresh_recordings({
-        let recordings = recordings.clone();
-        let physics_inspector = physics_inspector.clone();
-        let handle = main_window.as_weak();
-        move || {
-            recordings.set_vec(Vec::new());
-            let handle = handle.unwrap();
-
-            match read_recordings(&physics_inspector) {
-                Err(e) => handle.set_error(format!("{e:?}").into()),
-                Ok(new) => recordings.set_vec(new),
-            };
-        }
-    });
     main_window.on_pick_tas_files({
         let handle = main_window.as_weak();
         move || {
@@ -283,7 +281,8 @@ pub fn main() -> Result<()> {
         }
     });
 
-    // run
+    // main_window.set_recordings(Rc::new(recordings.filter(|rec| !rec.checked)).into());
+    main_window.set_recordings(recordings.into());
     main_window.run().unwrap();
 
     Ok(())

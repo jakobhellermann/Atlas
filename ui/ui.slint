@@ -1,175 +1,15 @@
 import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
     HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView } from "std-widgets.slint";
 
-import { TasRecording, TasRecordingState } from "tas_recording.slint";
+import { TasRecording, TasRecordingState } from "components/tas_recording.slint";
+import { MapRecordings, RecordingsList, Recordings } from "components/recordings_list.slint";
+import { RenderSettings, RenderSettingsTable } from "components/render_settings.slint";
+
+export { Recordings }
 
 enum ActiveWindow {
     Main,
     Record,
-}
-
-struct RenderSettings {
-    width: float,
-    only-render-visited: bool,
-    color-mode: string,
-    anti-alias: bool,
-}
-
-
-
-struct Recording {
-    i: int,
-    start-time: string,
-    frame-count: int,
-    start-room: string,
-    checked: bool,
-}
-struct MapRecordings {
-    map-bin: string,
-    chapter-name: string,
-    checked: bool,
-    recordings: [Recording],
-}
-
-export global Recordings {
-    callback toggle-expand-map(string);
-    callback toggle-expand-map-recording(string, int);
-}
-
-component ExpandButton inherits VerticalLayout {
-    in-out property <bool> expanded;
-    in property <bool> enabled: true;
-
-    public function toggle() {
-        expanded = !expanded;
-    }//
-    
-    alignment: center;
-
-    ta := TouchArea {
-        enabled: enabled;
-        width: 24px;
-        height: 24px;
-
-        clicked => {
-            expanded = !expanded
-        }
-
-        img := Image {
-            vertical-alignment: center;
-            width: 24px;
-            height: 24px;
-            source: @image-url("assets/dropdown.svg");
-            colorize: enabled ? Palette.control-foreground : Palette.control-foreground.darker(1.0);
-
-            animate rotation-angle {
-                duration: 200ms;
-                easing: ease-out;
-            }
-        }
-    }
-
-    states [
-        default when !expanded: {
-            img.rotation-angle: 0;
-        }
-        expanded when expanded: {
-            img.rotation-angle: -180deg;
-        }
-    ]
-}
-
-component RecordingsList {
-    in property <[MapRecordings]> recordings;
-
-    ListView {
-        for map in recordings: VerticalLayout {
-            HorizontalLayout {
-                expand := ExpandButton {
-                    expanded: false;
-                }
-
-                header-cb := CheckBox {
-                    checked: map.checked;
-
-                    toggled => {
-                        map.checked = self.checked;
-                        Recordings.toggle-expand-map(map.map-bin);
-                    }
-                }
-
-                TouchArea {
-                    width: t.preferred-width;
-
-                    t := Text {
-                        vertical-alignment: center;
-                        text: map.chapter-name + (map.recordings.length > 1 ? " (" + map.recordings.length + ")" : "");
-                    }
-
-                    clicked => {
-                        header-cb.checked = !header-cb.checked;
-                        header-cb.toggled()
-                    }
-                }
-            }
-
-            Rectangle {
-                clip: true;
-                visible: expand.expanded || true;
-                height: expand.expanded ? self.preferred-height : 0px;
-
-                animate height { duration: 100ms; }
-
-                VerticalLayout {
-                    padding-left: 24px;
-
-                    for recording in map.recordings: HorizontalLayout {
-                        alignment: start;
-
-                        recording-cb := CheckBox {
-                            checked: recording.checked;
-
-                            toggled => {
-                                recording.checked = self.checked;
-                                Recordings.toggle-expand-map-recording(map.map-bin, recording.i);
-                                header-cb.checked = map.checked;
-                            }
-                        }
-
-                        TouchArea {
-                            HorizontalLayout {
-                                spacing: 8px;
-                                Text {
-                                    vertical-alignment: center;
-                                    text: recording.i;
-                                }
-
-                                Text {
-                                    vertical-alignment: center;
-                                    text: recording.start-room;
-                                }
-
-                                Text {
-                                    vertical-alignment: center;
-                                    text: recording.start-time;
-                                }
-
-                                Text {
-                                    vertical-alignment: center;
-                                    text: recording.frame-count + "f";
-                                }
-                            }
-
-                            clicked => {
-                                recording-cb.checked = !recording-cb.checked;
-                                recording-cb.toggled();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 export component MainWindow inherits Window {
@@ -177,6 +17,8 @@ export component MainWindow inherits Window {
 
     default-font-size: 11pt;
     title: "tbd";
+    preferred-width: 1080px;
+    preferred-height: 720px;
 
     in property <[MapRecordings]> recordings: [
         {
@@ -206,8 +48,6 @@ export component MainWindow inherits Window {
     in-out property <string> error: "";
 
     // actions
-    callback delete-recent-recordings;
-    callback refresh-recordings;
     callback pick-tas-files();
     callback pick-tas-files-done([string]);
 
@@ -227,7 +67,6 @@ export component MainWindow inherits Window {
     // render
     in property <bool> rendering: false;
     callback render(RenderSettings);
-    private property <RenderSettings> render-settings: { width: 2, only-render-visited: false, color-mode: "Gradient", anti-alias: false };
 
     record-done(success) => {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
@@ -238,9 +77,6 @@ export component MainWindow inherits Window {
             nav = ActiveWindow.Record;
         }
     }
-
-    preferred-width: 1080px;
-    preferred-height: 720px;
 
     if nav == ActiveWindow.Record: r := TasRecording {
         state: record-state;
@@ -270,7 +106,8 @@ export component MainWindow inherits Window {
         }
     }
     if nav == ActiveWindow.Main: VerticalBox {
-        HorizontalBox {
+        HorizontalLayout {
+            padding: 8px;
             Button {
                 clicked => {
                     error = "";
@@ -280,137 +117,21 @@ export component MainWindow inherits Window {
 
                 text: "Record TASes";
             }
-
-            Button {
-                clicked => {
-                    error = "";
-                    delete-recent-recordings();
-                }
-
-                text: "Delete recent recodings";
-            }
-        }
-
-        HorizontalLayout {
-            Text {
-                text: "Recent CCT Recordings";
-                font-size: 18pt;
-                horizontal-stretch: 1;
-            }
-
-            Button {
-                horizontal-stretch: 0;
-                colorize-icon: true;
-                icon: @image-url("refresh.svg");
-
-                clicked => {
-                    error = "";
-                    refresh-recordings();
-                }
-            }
         }
 
         RecordingsList {
             recordings: recordings;
+            reset-error => {
+                error = "";
+            }
         }
 
-        GridLayout {
-            spacing: 8px;
-            Row {
-                Text {
-                    font-size: 18pt;
-                    text: "Render Settings";
-                }
-            }
-
-            Row {
-                color-row := Text {
-                    vertical-alignment: center;
-                    text: "Color";
-                }
-
-                ComboBox {
-                    current-value: render-settings.color-mode;
-                    // Keep in sync with render()
-                        model: ["Gradient", "StState", "Red"];
-                    selected(val) => {
-                        render-settings.color-mode = val;
-                    }
-                }
-            }
-
-            Row {
-                Text {
-                    vertical-alignment: center;
-                    text: "Line Width";
-                }
-
-                HorizontalLayout {
-                    spacing: 8px;
-                    slider := Slider {
-                        value: render-settings.width;
-                        minimum: 1.0;
-                        maximum: 20.0;
-
-                        changed(val) => {
-                            render-settings.width = val;
-                        }
-                    }
-
-                    Text {
-                        text: Math.round(slider.value * 100) / 100;
-                    }
-                }
-            }
-
-            Row {
-                Text {
-                    vertical-alignment: center;
-                    text: "Only include visited rooms";
-                }
-
-                HorizontalLayout {
-                    alignment: LayoutAlignment.start;
-                    CheckBox {
-                        checked: render-settings.only-render-visited;
-                        toggled => {
-                            render-settings.only-render-visited = self.checked;
-                        }
-                    }
-                }
-            }
-
-            Row {
-                Text {
-                    vertical-alignment: center;
-                    text: "Line Antialiasing";
-                }
-
-                HorizontalLayout {
-                    alignment: LayoutAlignment.start;
-                    CheckBox {
-                        checked: render-settings.anti-alias;
-                        toggled => {
-                            render-settings.anti-alias = self.checked;
-                        }
-                    }
-                }
-            }
+        render-settings := RenderSettingsTable {
+            padding-top: 8px;
         }
 
         HorizontalLayout {
-            VerticalLayout {
-
-                HorizontalBox {
-                    padding-left: 0;
-                    padding-bottom: 0;
-                    alignment: start;
-                }
-            }
-        }
-
-        HorizontalLayout {
-            padding-top: 16px;
+            padding-top: 8px;
             alignment: space-between;
 
             Text {
@@ -428,7 +149,7 @@ export component MainWindow inherits Window {
                     enabled: !rendering;
                     clicked => {
                         error = "";
-                        root.render(render-settings);
+                        root.render(render-settings.render-settings);
                     }
 
                     text: "Render";

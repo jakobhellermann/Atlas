@@ -1,0 +1,153 @@
+import { ListView, CheckBox, Button } from "std-widgets.slint";
+import { ExpandButton } from "../widgets/widgets.slint";
+
+export global Recordings {
+    callback refresh-recordings;
+    callback delete-recordings;
+
+    callback toggle-expand-map(string);
+    callback toggle-expand-map-recording(string, int);
+}
+
+export struct Recording {
+    i: int,
+    start-time: string,
+    frame-count: int,
+    start-room: string,
+    checked: bool,
+}
+export struct MapRecordings {
+    map-bin: string,
+    chapter-name: string,
+    checked: bool,
+    recordings: [Recording],
+}
+
+export component RecordingsList inherits VerticalLayout {
+    in property <[MapRecordings]> recordings;
+
+    callback reset-error();
+
+    HorizontalLayout {
+        Text {
+            text: "Recent CCT Recordings";
+            font-size: 18pt;
+            horizontal-stretch: 1;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+
+            Button {
+                horizontal-stretch: 0;
+                colorize-icon: true;
+                icon: @image-url("../assets/delete.svg");
+
+                clicked => {
+                    reset-error();
+                    Recordings.delete-recordings();
+                }
+            }
+
+            Button {
+                horizontal-stretch: 0;
+                colorize-icon: true;
+                icon: @image-url("../assets/refresh.svg");
+
+                clicked => {
+                    reset-error();
+                    Recordings.refresh-recordings();
+                }
+            }
+        }
+    }
+
+    ListView {
+        for map in recordings: VerticalLayout {
+            HorizontalLayout {
+                expand := ExpandButton {
+                    expanded: false;
+                }
+
+                header-cb := CheckBox {
+                    checked: map.checked;
+
+                    toggled => {
+                        map.checked = self.checked;
+                        Recordings.toggle-expand-map(map.map-bin);
+                    }
+                }
+
+                TouchArea {
+                    width: t.preferred-width;
+
+                    t := Text {
+                        vertical-alignment: center;
+                        text: map.chapter-name + (map.recordings.length > 1 ? " (" + map.recordings.length + ")" : "");
+                    }
+
+                    clicked => {
+                        header-cb.checked = !header-cb.checked;
+                        header-cb.toggled()
+                    }
+                }
+            }
+
+            Rectangle {
+                clip: true;
+                visible: expand.expanded || true;
+                height: expand.expanded ? self.preferred-height : 0px;
+
+                animate height { duration: 100ms; }
+
+                VerticalLayout {
+                    padding-left: 24px;
+
+                    for recording in map.recordings: HorizontalLayout {
+                        alignment: start;
+
+                        recording-cb := CheckBox {
+                            checked: recording.checked;
+
+                            toggled => {
+                                recording.checked = self.checked;
+                                Recordings.toggle-expand-map-recording(map.map-bin, recording.i);
+                                header-cb.checked = map.checked;
+                            }
+                        }
+
+                        TouchArea {
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.i;
+                                }
+
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.start-room;
+                                }
+
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.start-time;
+                                }
+
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.frame-count + "f";
+                                }
+                            }
+
+                            clicked => {
+                                recording-cb.checked = !recording-cb.checked;
+                                recording-cb.toggled();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
