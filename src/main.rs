@@ -60,6 +60,10 @@ pub fn main() -> Result<()> {
                     }
                     acc
                 });
+            if map_bins.is_empty() {
+                handle.unwrap().set_error("No recordings selected".into());
+                return;
+            }
 
             handle.unwrap().set_rendering(true);
             let celeste = celeste.clone();
