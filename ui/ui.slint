@@ -1,5 +1,5 @@
 import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
-    HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView } from "std-widgets.slint";
+    HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView, Spinner } from "std-widgets.slint";
 
 import { TasRecording, TasRecordingState } from "components/tas_recording.slint";
 import { MapRecordings, RecordingsList, Recordings } from "components/recordings_list.slint";
@@ -158,17 +158,20 @@ export component MainWindow inherits Window {
                 color: #ff3333;
             }
 
-            VerticalLayout {
+            HorizontalLayout {
                 alignment: end;
 
                 render-button := Button {
+                    height: 32px;
+                    width: 80px;
+
                     enabled: !Render.rendering;
                     clicked => {
                         error = "";
                         Render.render(Render.render-settings);
                     }
 
-                    text: "Render";
+                    text: Render.rendering ? "⟳" : "Render";
                 }
             }
         }
