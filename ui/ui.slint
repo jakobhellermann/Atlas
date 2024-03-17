@@ -80,7 +80,7 @@ export component MainWindow inherits Window {
     key-handler := FocusScope {
         key-pressed(event) => {
             if (event.modifiers.control && event.text == "f" && !event.repeat) {
-                // TODO search
+                Recordings.toggle-search();
                 return EventResult.accept;
             }
             if (event.modifiers.control && event.text == "a" && !event.repeat) {

@@ -1,4 +1,4 @@
-import { ListView, CheckBox, Button } from "std-widgets.slint";
+import { ListView, CheckBox, Button, LineEdit } from "std-widgets.slint";
 import { ExpandButton } from "../widgets/widgets.slint";
 
 export global Recordings {
@@ -8,6 +8,13 @@ export global Recordings {
     callback toggle-select-all();
     callback toggle-expand-map(string);
     callback toggle-expand-map-recording(string, int);
+
+    callback set-filter(string);
+
+    out property <bool> searching;
+    public function toggle-search() {
+        searching = !searching;
+    }
 }
 
 export struct Recording {
@@ -38,6 +45,28 @@ export component RecordingsList inherits VerticalLayout {
 
         HorizontalLayout {
             spacing: 8px;
+
+            filter-edit := LineEdit {
+                visible: Recordings.searching;
+                placeholder-text: "Filter";
+
+                edited(val) => {
+                    Recordings.set-filter(val);
+                }
+            }
+
+            Button {
+                horizontal-stretch: 0;
+                colorize-icon: true;
+                icon: @image-url("../assets/search.svg");
+
+                forward-focus: filter-edit;
+
+                clicked => {
+                    Recordings.toggle-search();
+                    filter-edit.focus();
+                }
+            }
 
             Button {
                 horizontal-stretch: 0;

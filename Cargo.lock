@@ -3579,6 +3579,7 @@ dependencies = [
  "chrono",
  "indexmap",
  "notify-debouncer-full",
+ "once_cell",
  "opener",
  "rfd",
  "serde",

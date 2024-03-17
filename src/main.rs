@@ -14,7 +14,7 @@ use notify_debouncer_full::{
     notify::{self, RecommendedWatcher, Watcher},
     DebounceEventResult, Debouncer, FileIdMap,
 };
-use slint::{ComponentHandle, Model, SharedString, VecModel, Weak};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Weak};
 use std::{
     collections::HashSet,
     panic::AssertUnwindSafe,
@@ -22,6 +22,8 @@ use std::{
     rc::Rc,
     time::{Duration, Instant},
 };
+
+mod filtered_recordings;
 
 slint::include_modules!();
 
@@ -32,11 +34,14 @@ pub fn main() -> Result<()> {
     let main_window = MainWindow::new().unwrap();
     let _watcher = start_watcher(&physics_inspector, main_window.as_weak())?;
 
-    let recordings = Rc::new(VecModel::from(read_recordings(&physics_inspector)?));
+    let recordings_unfiltered = Rc::new(VecModel::from(read_recordings(&physics_inspector)?));
+    let filter_model = Rc::new(filtered_recordings::create_model(
+        recordings_unfiltered.clone(),
+    ));
 
     let recordings_global = &main_window.global::<Recordings>();
     recordings_global.on_toggle_select_all({
-        let recordings = recordings.clone();
+        let recordings = recordings_unfiltered.clone();
         move || {
             let all_selected = recordings.iter().all(|map| map.checked);
             let new_selection = if all_selected { false } else { true };
@@ -58,7 +63,7 @@ pub fn main() -> Result<()> {
         }
     });
     recordings_global.on_toggle_expand_map({
-        let recordings = recordings.clone();
+        let recordings = recordings_unfiltered.clone();
         move |map_bin| {
             let Some(list) = recordings
                 .iter()
@@ -75,7 +80,7 @@ pub fn main() -> Result<()> {
         }
     });
     recordings_global.on_toggle_expand_map_recording({
-        let recordings = recordings.clone();
+        let recordings = recordings_unfiltered.clone();
         move |map_bin, _| {
             let Some((j, mut list)) = recordings
                 .iter()
@@ -91,7 +96,7 @@ pub fn main() -> Result<()> {
         }
     });
     recordings_global.on_refresh_recordings({
-        let recordings = recordings.clone();
+        let recordings = recordings_unfiltered.clone();
         let physics_inspector = physics_inspector.clone();
         let handle = main_window.as_weak();
         move || {
@@ -106,7 +111,7 @@ pub fn main() -> Result<()> {
     });
     recordings_global.on_delete_recordings({
         let physics_inspector = physics_inspector.clone();
-        let recordings = Rc::clone(&recordings);
+        let recordings = Rc::clone(&recordings_unfiltered);
         let handle = main_window.as_weak();
         move || {
             let handle = handle.unwrap();
@@ -119,10 +124,14 @@ pub fn main() -> Result<()> {
             }
         }
     });
+    recordings_global.on_set_filter({
+        let filter_model = filter_model.clone();
+        move |filter| filtered_recordings::set_filter(&filter, &*filter_model)
+    });
 
     let render_global = main_window.global::<Render>();
     render_global.on_render({
-        let recordings = recordings.clone();
+        let recordings = filter_model.clone();
         let handle = main_window.as_weak();
 
         move |settings| {
@@ -288,23 +297,14 @@ pub fn main() -> Result<()> {
                         };
                         handle.set_record_progress(1.0);
 
-                        let model = handle.get_recordings();
-                        match read_recordings(&physics_inspector) {
-                            Err(e) => handle.set_error(format!("{e:?}").into()),
-                            Ok(new) => model
-                                .as_any()
-                                .downcast_ref::<VecModel<MapRecordings>>()
-                                .unwrap()
-                                .set_vec(new),
-                        }
+                        read_recordings_update_main(handle, physics_inspector);
                     })
                     .unwrap();
             });
         }
     });
 
-    // main_window.set_recordings(Rc::new(recordings.filter(|rec| !rec.checked)).into());
-    main_window.set_recordings(recordings.into());
+    main_window.set_recordings(ModelRc::from(filter_model));
     main_window.run().unwrap();
 
     Ok(())
@@ -425,6 +425,15 @@ fn cct_visited_rooms(
     Ok(rooms)
 }
 
+fn read_recordings_update_main(handle: MainWindow, physics_inspector: PhysicsInspector) {
+    let model = handle.get_recordings();
+    let model = filtered_recordings::get_source_vec_model(&model);
+    match read_recordings(&physics_inspector) {
+        Err(e) => handle.set_error(format!("{e:?}").into()),
+        Ok(new) => model.set_vec(new),
+    }
+}
+
 fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<MapRecordings>> {
     let mut recent_recordings = physics_inspector.recent_recordings()?;
     recent_recordings.sort_by_key(|a| a.0);
@@ -522,17 +531,7 @@ fn start_watcher(
                 let physics_inspector = physics_inspector.clone();
                 let result = watcher_handle.upgrade_in_event_loop(move |handle| {
                     let start_reading = Instant::now();
-                    let model = handle.get_recordings();
-                    match read_recordings(&physics_inspector) {
-                        Err(e) => {
-                            eprintln!("{:?}", e.context("failed to reload recordings"));
-                        }
-                        Ok(new) => model
-                            .as_any()
-                            .downcast_ref::<VecModel<MapRecordings>>()
-                            .unwrap()
-                            .set_vec(new),
-                    }
+                    read_recordings_update_main(handle, physics_inspector);
 
                     println!(
                         "reloading room layouts, {:.02}s after last, took {}ms",
