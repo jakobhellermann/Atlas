@@ -1,7 +1,6 @@
 import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
     HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView } from "std-widgets.slint";
 
-import { CCTRecording, RecordingsTable } from "recordings_table.slint";
 import { TasRecording, TasRecordingState } from "tas_recording.slint";
 
 enum ActiveWindow {
@@ -16,14 +15,194 @@ struct RenderSettings {
     anti-alias: bool,
 }
 
+
+
+struct Recording {
+    i: int,
+    start-time: string,
+    frame-count: int,
+    start-room: string,
+    checked: bool,
+}
+struct MapRecordings {
+    map-bin: string,
+    chapter-name: string,
+    checked: bool,
+    recordings: [Recording],
+}
+
+export global Recordings {
+    callback toggle-expand-map(string);
+    callback toggle-expand-map-recording(string, int);
+}
+
+component ExpandButton inherits VerticalLayout {
+    in-out property <bool> expanded;
+    in property <bool> enabled: true;
+
+    public function toggle() {
+        expanded = !expanded;
+    }//
+    
+    alignment: center;
+
+    ta := TouchArea {
+        enabled: enabled;
+        width: 24px;
+        height: 24px;
+
+        clicked => {
+            expanded = !expanded
+        }
+
+        img := Image {
+            vertical-alignment: center;
+            width: 24px;
+            height: 24px;
+            source: @image-url("assets/dropdown.svg");
+            colorize: enabled ? Palette.control-foreground : Palette.control-foreground.darker(1.0);
+
+            animate rotation-angle {
+                duration: 200ms;
+                easing: ease-out;
+            }
+        }
+    }
+
+    states [
+        default when !expanded: {
+            img.rotation-angle: 0;
+        }
+        expanded when expanded: {
+            img.rotation-angle: -180deg;
+        }
+    ]
+}
+
+component RecordingsList {
+    in property <[MapRecordings]> recordings;
+
+    ListView {
+        for map in recordings: VerticalLayout {
+            HorizontalLayout {
+                expand := ExpandButton {
+                    expanded: false;
+                }
+
+                header-cb := CheckBox {
+                    checked: map.checked;
+
+                    toggled => {
+                        map.checked = self.checked;
+                        Recordings.toggle-expand-map(map.map-bin);
+                    }
+                }
+
+                TouchArea {
+                    width: t.preferred-width;
+
+                    t := Text {
+                        vertical-alignment: center;
+                        text: map.chapter-name + (map.recordings.length > 1 ? " (" + map.recordings.length + ")" : "");
+                    }
+
+                    clicked => {
+                        header-cb.checked = !header-cb.checked;
+                        header-cb.toggled()
+                    }
+                }
+            }
+
+            Rectangle {
+                clip: true;
+                visible: expand.expanded || true;
+                height: expand.expanded ? self.preferred-height : 0px;
+
+                animate height { duration: 100ms; }
+
+                VerticalLayout {
+                    padding-left: 24px;
+
+                    for recording in map.recordings: HorizontalLayout {
+                        alignment: start;
+
+                        recording-cb := CheckBox {
+                            checked: recording.checked;
+
+                            toggled => {
+                                recording.checked = self.checked;
+                                Recordings.toggle-expand-map-recording(map.map-bin, recording.i);
+                                header-cb.checked = map.checked;
+                            }
+                        }
+
+                        TouchArea {
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.i;
+                                }
+
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.start-room;
+                                }
+
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.start-time;
+                                }
+
+                                Text {
+                                    vertical-alignment: center;
+                                    text: recording.frame-count + "f";
+                                }
+                            }
+
+                            clicked => {
+                                recording-cb.checked = !recording-cb.checked;
+                                recording-cb.toggled();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 export component MainWindow inherits Window {
     private property <ActiveWindow> nav: Main;
 
     default-font-size: 11pt;
     title: "tbd";
 
+    in property <[MapRecordings]> recordings: [
+        {
+            chapter-name: "Superluminary",
+            checked: true,
+            recordings: [
+                {
+                    i: 0,
+                    start-time: "13:31",
+                    frame-count: 3522,
+                    checked: true,
+                },
+                {
+                    i: 1,
+                    start-time: "13:34",
+                    frame-count: 27,
+                    checked: false,
+                },
+            ]
+        },
+        { chapter-name: "The Solar Express" },
+        { chapter-name: "Pinball Purgatory" },
+        { chapter-name: "Cave of the Crimson Sky" },
+    ];
+
     // main
-    in property <[CCTRecording]> recordings-model: [];
     in-out property <string> error: "";
 
     // actions
@@ -131,9 +310,8 @@ export component MainWindow inherits Window {
             }
         }
 
-        RecordingsTable {
-            columns: ["#", "Chapter Name", "Time", "Include"];
-            values: recordings-model;
+        RecordingsList {
+            recordings: recordings;
         }
 
         HorizontalLayout {
@@ -246,7 +424,7 @@ export component MainWindow inherits Window {
                 alignment: end;
 
                 render-button := Button {
-                    enabled: !rendering && recordings-model.length > 0;
+                    enabled: !rendering;
                     clicked => {
                         error = "";
                         root.render(render-settings);

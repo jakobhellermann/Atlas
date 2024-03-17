@@ -29,14 +29,47 @@ pub fn main() -> Result<()> {
     let celeste = CelesteInstallation::detect()?;
     let physics_inspector = PhysicsInspector::new(&celeste);
 
-    let recordings = Rc::new(slint::VecModel::<CCTRecording>::from(read_recordings(
-        &physics_inspector,
-    )?));
-
     let main_window = MainWindow::new().unwrap();
-    main_window.set_recordings_model(recordings.clone().into());
-
     let _watcher = start_watcher(&physics_inspector, main_window.as_weak())?;
+
+    let recordings = Rc::new(VecModel::from(read_recordings(&physics_inspector)?));
+
+    main_window.global::<Recordings>().on_toggle_expand_map({
+        let recordings = recordings.clone();
+        move |map_bin| {
+            let Some(list) = recordings
+                .iter()
+                .find(|recording| recording.map_bin == map_bin)
+            else {
+                return;
+            };
+
+            for i in 0..list.recordings.row_count() {
+                let mut row = list.recordings.row_data(i).unwrap();
+                row.checked = list.checked;
+                list.recordings.set_row_data(i, row);
+            }
+        }
+    });
+    main_window
+        .global::<Recordings>()
+        .on_toggle_expand_map_recording({
+            let recordings = recordings.clone();
+            move |map_bin, _| {
+                let Some((j, mut list)) = recordings
+                    .iter()
+                    .enumerate()
+                    .find(|(_, recording)| recording.map_bin == map_bin)
+                else {
+                    return;
+                };
+
+                let any_checked = list.recordings.iter().any(|rec| rec.checked);
+                list.checked = any_checked;
+                recordings.set_row_data(j, list);
+            }
+        });
+    main_window.set_recordings(recordings.clone().into());
 
     // callbacks
     main_window.on_render({
@@ -51,15 +84,19 @@ pub fn main() -> Result<()> {
                 _ => unreachable!(),
             };
 
-            let map_bins: IndexMap<(String, String), Vec<_>> =
-                recordings.iter().fold(IndexMap::new(), |mut acc, item| {
-                    if item.checked && item.can_render {
-                        acc.entry((item.map_bin.into(), item.chapter_name.into()))
-                            .or_default()
-                            .push(item.i);
-                    }
-                    acc
-                });
+            let map_bins: IndexMap<(String, String), Vec<_>> = recordings
+                .iter()
+                .filter_map(|map| {
+                    let key = (map.map_bin.to_string(), map.chapter_name.to_string());
+                    let recordings: Vec<_> = map
+                        .recordings
+                        .iter()
+                        .filter_map(|rec| rec.checked.then_some(rec.i))
+                        .collect();
+                    (!recordings.is_empty()).then_some((key, recordings))
+                })
+                .collect();
+
             if map_bins.is_empty() {
                 handle.unwrap().set_error("No recordings selected".into());
                 return;
@@ -114,12 +151,13 @@ pub fn main() -> Result<()> {
         }
     });
     main_window.on_refresh_recordings({
-        let recordings = Rc::clone(&recordings);
+        let recordings = recordings.clone();
         let physics_inspector = physics_inspector.clone();
         let handle = main_window.as_weak();
         move || {
             recordings.set_vec(Vec::new());
             let handle = handle.unwrap();
+
             match read_recordings(&physics_inspector) {
                 Err(e) => handle.set_error(format!("{e:?}").into()),
                 Ok(new) => recordings.set_vec(new),
@@ -230,12 +268,12 @@ pub fn main() -> Result<()> {
                         };
                         handle.set_record_progress(1.0);
 
-                        let model = handle.get_recordings_model();
+                        let model = handle.get_recordings();
                         match read_recordings(&physics_inspector) {
                             Err(e) => handle.set_error(format!("{e:?}").into()),
                             Ok(new) => model
                                 .as_any()
-                                .downcast_ref::<VecModel<CCTRecording>>()
+                                .downcast_ref::<VecModel<MapRecordings>>()
                                 .unwrap()
                                 .set_vec(new),
                         }
@@ -366,39 +404,62 @@ fn cct_visited_rooms(
     Ok(rooms)
 }
 
-fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<CCTRecording>> {
+fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<MapRecordings>> {
     let mut recent_recordings = physics_inspector.recent_recordings()?;
     recent_recordings.sort_by_key(|a| a.0);
 
-    Ok(recent_recordings
-        .into_iter()
-        .map(|(i, layout)| {
-            let has_map_bin = layout.map_bin.is_some();
-            let mut name = match layout.side_name.as_str() {
-                "A-Side" => layout.chapter_name,
-                _ => format!("{} {}", layout.chapter_name, layout.side_name),
-            };
-            if !has_map_bin {
-                name = format!("[old CCT] {name}");
-            }
+    let now = chrono::Utc::now();
 
-            let is_vanilla = layout.sid.map_or(false, |sid| sid.starts_with("Celeste/"));
-            let map_bin = layout.map_bin.as_deref().map(|bin| match is_vanilla {
-                true => format!("Celeste/{bin}"),
-                false => bin.into(),
-            });
-            CCTRecording {
+    let mut recordings = IndexMap::<_, Vec<_>>::new();
+    for (i, layout) in recent_recordings {
+        let is_vanilla = layout.sid.map_or(false, |sid| sid.starts_with("Celeste/"));
+        let map_bin = layout.map_bin.unwrap_or_default();
+        let map_bin = match is_vanilla {
+            true => format!("Celeste/{map_bin}"),
+            false => map_bin.into(),
+        };
+
+        let name = match layout.side_name.as_str() {
+            "A-Side" => layout.chapter_name,
+            _ => format!("{} {}", layout.chapter_name, layout.side_name),
+        };
+
+        let start_time = DateTime::parse_from_rfc3339(&layout.recording_started)
+            .map(|date| {
+                let is_today = date.date_naive() == now.date_naive();
+                if is_today {
+                    date.format("%R").to_string()
+                } else {
+                    date.format("%d.%m.%Y %R").to_string()
+                }
+            })
+            .unwrap_or_default();
+
+        let start_room = layout
+            .rooms
+            .first()
+            .map(|room| room.debug_room_name.as_str())
+            .unwrap_or_default();
+
+        recordings
+            .entry((map_bin, name))
+            .or_default()
+            .push(Recording {
+                checked: false,
                 i: i as i32,
-                chapter_name: name.into(),
-                map_bin: map_bin.unwrap_or_default().into(),
-                start_time: DateTime::parse_from_rfc3339(&layout.recording_started)
-                    .unwrap()
-                    .format("%d.%m.%Y %R")
-                    .to_string()
-                    .into(),
-                can_render: has_map_bin,
-                checked: has_map_bin,
-            }
+                start_time: start_time.into(),
+                start_room: start_room.into(),
+                frame_count: layout.frame_count as i32,
+            });
+    }
+
+    Ok(recordings
+        .into_iter()
+        .map(|((map_bin, name), recordings)| MapRecordings {
+            map_bin: map_bin.into(),
+            chapter_name: name.into(),
+            checked: false,
+            recordings: Rc::new(VecModel::from(recordings)).into(),
         })
         .collect())
 }
@@ -440,14 +501,14 @@ fn start_watcher(
                 let physics_inspector = physics_inspector.clone();
                 let result = watcher_handle.upgrade_in_event_loop(move |handle| {
                     let start_reading = Instant::now();
-                    let model = handle.get_recordings_model();
+                    let model = handle.get_recordings();
                     match read_recordings(&physics_inspector) {
                         Err(e) => {
                             eprintln!("{:?}", e.context("failed to reload recordings"));
                         }
                         Ok(new) => model
                             .as_any()
-                            .downcast_ref::<VecModel<CCTRecording>>()
+                            .downcast_ref::<VecModel<MapRecordings>>()
                             .unwrap()
                             .set_vec(new),
                     }
