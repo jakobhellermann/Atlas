@@ -78,6 +78,21 @@ export component MainWindow inherits Window {
         }
     }
 
+    forward-focus: key-handler;
+    key-handler := FocusScope {
+        key-pressed(event) => {
+            if (event.modifiers.control && event.text == "f" && !event.repeat) {
+                // TODO search
+                return EventResult.accept;
+            }
+            if (event.modifiers.control && event.text == "a" && !event.repeat) {
+                Recordings.toggle-select-all();
+                return EventResult.accept;
+            }
+            EventResult.reject
+        }
+    }
+
     if nav == ActiveWindow.Record: r := TasRecording {
         state: record-state;
         paths: record-paths;

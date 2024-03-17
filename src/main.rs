@@ -35,6 +35,28 @@ pub fn main() -> Result<()> {
     let recordings = Rc::new(VecModel::from(read_recordings(&physics_inspector)?));
 
     let recordings_global = &main_window.global::<Recordings>();
+    recordings_global.on_toggle_select_all({
+        let recordings = recordings.clone();
+        move || {
+            let all_selected = recordings.iter().all(|map| map.checked);
+            let new_selection = if all_selected { false } else { true };
+
+            let mut new = Vec::new();
+            for j in 0..recordings.row_count() {
+                let mut map = recordings.row_data(j).unwrap();
+
+                for i in 0..map.recordings.row_count() {
+                    let mut recording = map.recordings.row_data(i).unwrap();
+                    recording.checked = new_selection;
+                    map.recordings.set_row_data(i, recording);
+                }
+
+                map.checked = new_selection;
+                new.push(map);
+            }
+            recordings.set_vec(new);
+        }
+    });
     recordings_global.on_toggle_expand_map({
         let recordings = recordings.clone();
         move |map_bin| {
