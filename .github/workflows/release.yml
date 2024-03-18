@@ -20,7 +20,7 @@ jobs:
       - run: dotnet tool install --global wix
 
       - run: cargo build --release
-      # todo: package wix
+      - run: wix build ./packaging/msi/Package.wxs -out Atlas
 
       - uses: vimtor/action-zip@v1.1
         with:
@@ -28,7 +28,7 @@ jobs:
           dest: windows.zip
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "windows.zip"
+          artifacts: "windows.zip,Atlas.msi"
           allowUpdates: true
 
   build-linux:

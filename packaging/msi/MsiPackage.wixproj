@@ -1,9 +1,0 @@
-﻿<Project Sdk="WixToolset.Sdk/4.0.3">
-    <PropertyGroup>
-        <OutputName>Atlas</OutputName>
-    </PropertyGroup>
-
-    <Target Name="Publish App" BeforeTargets="BeforeBuild">
-        <Exec Command="cargo build --release --manifest-path ../Cargo.toml --out-dir bin -Zunstable-options"/>
-    </Target>
-</Project>
