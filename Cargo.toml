@@ -1,13 +1,14 @@
 [package]
 name = "atlas"
-version = "0.1.0"
+description = "Render and visualize paths for Celeste TASes"
+version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-celesteloader = { version = "0.1.0", path = "../celestetools/crates/celesteloader" }
-celesterender = { version = "0.1.0", path = "../celestetools/crates/celesterender" }
-annotate_celeste_map = { version = "0.1.0", path = "../celestetools/crates/annotate_celeste_map" }
-celestedebugrc = { version = "0.1.0", path = "../celestetools/crates/celestedebugrc" }
+celesteloader = "0.1"
+celesterender = "0.1"
+celestedebugrc = "0.1"
+annotate_celeste_map = "0.1"
 
 slint = { version = "1.5", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-femtovg"] }
 rfd = { version = "0.14.0", default-features = false, features = ["gtk3"] }

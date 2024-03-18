@@ -97,6 +97,8 @@ dependencies = [
 [[package]]
 name = "annotate_celeste_map"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b26f432cfb114d440a8740883e29c823b17b2296c95bb8ffc267ec04b1ddf89b"
 dependencies = [
  "anyhow",
  "celestedebugrc",
@@ -208,7 +210,7 @@ dependencies = [
 
 [[package]]
 name = "atlas"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "annotate_celeste_map",
  "anyhow",
@@ -427,6 +429,8 @@ dependencies = [
 [[package]]
 name = "celestedebugrc"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bfa77ef39715e3d8fac08b964362aac9ab5bb89569760df0e6853c71f1ce3a9"
 dependencies = [
  "anyhow",
  "ureq",
@@ -435,6 +439,8 @@ dependencies = [
 [[package]]
 name = "celesteloader"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "142c7da7d63fd51ad97ea11a6c2819fd7a17052c17d09b6f3ca404dd43581f0d"
 dependencies = [
  "anyhow",
  "csv",
@@ -452,6 +458,8 @@ dependencies = [
 [[package]]
 name = "celesterender"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf417e993f700ff1a082f90910df4c559e345f01a4ebc6eb95db2ba832479069"
 dependencies = [
  "anyhow",
  "celesteloader",
