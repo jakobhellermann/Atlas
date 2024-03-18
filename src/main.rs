@@ -196,19 +196,24 @@ pub fn main() -> Result<()> {
         }
     });
 
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_io()
+        .build()
+        .unwrap();
+
     main_window.on_pick_tas_files({
         let handle = main_window.as_weak();
         move || {
             let handle = handle.clone();
-
-            std::thread::spawn(move || {
-                let files = rfd::FileDialog::new()
+            runtime.spawn(async move {
+                let files = rfd::AsyncFileDialog::new()
                     .add_filter("TAS", &["tas"])
                     .pick_files()
+                    .await
                     .unwrap_or_default();
                 let files = files
                     .into_iter()
-                    .map(|file| file.to_str().unwrap().into())
+                    .map(|file| file.path().to_str().unwrap().into())
                     .collect::<Vec<SharedString>>();
                 handle
                     .upgrade_in_event_loop(|handle| {
