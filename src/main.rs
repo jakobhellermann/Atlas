@@ -27,14 +27,40 @@ mod filtered_recordings;
 
 slint::include_modules!();
 
-pub fn main() -> Result<()> {
-    let celeste = CelesteInstallation::detect()?;
+pub fn main() {
+    let main_window = MainWindow::new().unwrap();
+
+    let celeste = match CelesteInstallation::detect() {
+        Ok(celeste) => celeste,
+        Err(_) => {
+            main_window.set_error("Could not find celeste installation. Please open an issue at https://github.com/jakobhellermann/Atlas or dm me on discord (@dubisteinkek)".into());
+            main_window.run().unwrap();
+            return;
+        }
+    };
+
     let physics_inspector = PhysicsInspector::new(&celeste);
 
     let main_window = MainWindow::new().unwrap();
-    let _watcher = start_watcher(&physics_inspector, main_window.as_weak())?;
 
-    let recordings_unfiltered = Rc::new(VecModel::from(read_recordings(&physics_inspector)?));
+    let _watcher = match start_watcher(&physics_inspector, main_window.as_weak()) {
+        Ok(watcher) => Some(watcher),
+        Err(e) => {
+            main_window
+                .set_error(format!("Cannot listen to CCT changes in the background: {e:?}").into());
+            None
+        }
+    };
+
+    let recordings = match read_recordings(&physics_inspector) {
+        Ok(recordings) => recordings,
+        Err(e) => {
+            main_window.set_error(format!("{e:?}").into());
+            Vec::new()
+        }
+    };
+
+    let recordings_unfiltered = Rc::new(VecModel::from(recordings));
     let filter_model = Rc::new(filtered_recordings::create_model(
         recordings_unfiltered.clone(),
     ));
@@ -314,8 +340,6 @@ pub fn main() -> Result<()> {
 
     main_window.set_recordings(ModelRc::from(filter_model));
     main_window.run().unwrap();
-
-    Ok(())
 }
 
 struct RenderState {
