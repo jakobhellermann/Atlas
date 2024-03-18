@@ -16,9 +16,10 @@ export component MainWindow inherits Window {
     private property <ActiveWindow> nav: Main;
 
     default-font-size: 11pt;
-    title: "tbd";
+    title: "Atlas";
     preferred-width: 1080px;
     preferred-height: 720px;
+    icon: @image-url("assets/icon.png");
 
     in property <[MapRecordings]> recordings: [
         {

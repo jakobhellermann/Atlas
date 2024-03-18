@@ -1,6 +1,6 @@
 ﻿<Project Sdk="WixToolset.Sdk/4.0.3">
     <PropertyGroup>
-        <OutputName>tbd</OutputName>
+        <OutputName>Atlas</OutputName>
     </PropertyGroup>
 
     <Target Name="Publish App" BeforeTargets="BeforeBuild">
