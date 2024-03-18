@@ -10,7 +10,7 @@ export struct RenderSettings {
 
 export global Render {
     callback render(RenderSettings);
-    in property <RenderSettings> render-settings: { width: 2, only-render-visited: true, color-mode: "Gradient", anti-alias: false };
+    in property <RenderSettings> render-settings: { width: 2, only-render-visited: true, color-mode: "Gradient", anti-alias: true };
     in property <bool> rendering: false;
 }
 
