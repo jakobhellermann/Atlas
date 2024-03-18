@@ -196,10 +196,10 @@ pub fn main() -> Result<()> {
         }
     });
 
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_io()
-        .build()
-        .unwrap();
+    let mut runtime = tokio::runtime::Builder::new_multi_thread();
+    #[cfg(target_os = "linux")]
+    runtime.enable_io();
+    let runtime = runtime.build().unwrap();
 
     main_window.on_pick_tas_files({
         let handle = main_window.as_weak();
