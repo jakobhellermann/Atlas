@@ -43,20 +43,23 @@ pub fn main() -> Result<()> {
     recordings_global.on_toggle_select_all({
         let recordings = recordings_unfiltered.clone();
         move || {
-            let all_selected = recordings.iter().all(|map| map.checked);
+            let all_selected = recordings
+                .iter()
+                .all(|map| map.checked || map.map_bin == "");
             let new_selection = if all_selected { false } else { true };
 
             let mut new = Vec::new();
             for j in 0..recordings.row_count() {
                 let mut map = recordings.row_data(j).unwrap();
+                let has_map_bin = map.map_bin != "";
 
                 for i in 0..map.recordings.row_count() {
                     let mut recording = map.recordings.row_data(i).unwrap();
-                    recording.checked = new_selection;
+                    recording.checked = new_selection && has_map_bin;
                     map.recordings.set_row_data(i, recording);
                 }
 
-                map.checked = new_selection;
+                map.checked = new_selection && has_map_bin;
                 new.push(map);
             }
             recordings.set_vec(new);
@@ -73,9 +76,9 @@ pub fn main() -> Result<()> {
             };
 
             for i in 0..list.recordings.row_count() {
-                let mut row = list.recordings.row_data(i).unwrap();
-                row.checked = list.checked;
-                list.recordings.set_row_data(i, row);
+                let mut recording = list.recordings.row_data(i).unwrap();
+                recording.checked = list.checked;
+                list.recordings.set_row_data(i, recording);
             }
         }
     });
@@ -442,9 +445,11 @@ fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<MapRecord
 
     let mut recordings = IndexMap::<_, Vec<_>>::new();
     for (i, layout) in recent_recordings {
+        let old_cct = layout.map_bin.is_none();
+
         let is_vanilla = layout.sid.map_or(false, |sid| sid.starts_with("Celeste/"));
         let map_bin = layout.map_bin.unwrap_or_default();
-        let map_bin = match is_vanilla {
+        let map_bin = match is_vanilla && !old_cct {
             true => format!("Celeste/{map_bin}"),
             false => map_bin.into(),
         };

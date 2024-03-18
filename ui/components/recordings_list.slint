@@ -107,6 +107,7 @@ export component RecordingsList inherits VerticalLayout {
                 }
 
                 header-cb := CheckBox {
+                    enabled: map.map-bin != "";
                     checked: map.checked;
 
                     toggled => {
@@ -120,7 +121,7 @@ export component RecordingsList inherits VerticalLayout {
 
                     t := Text {
                         vertical-alignment: center;
-                        text: map.chapter-name + (map.recordings.length > 1 ? " (" + map.recordings.length + ")" : "");
+                        text: (map.map-bin == "" ? "[old CCT] " : "") + map.chapter-name + (map.recordings.length > 1 ? " (" + map.recordings.length + ")" : "");
                     }
 
                     clicked => {
