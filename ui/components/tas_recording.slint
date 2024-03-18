@@ -1,4 +1,10 @@
-import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox, ScrollView } from "std-widgets.slint";
+import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox, ScrollView, Button } from "std-widgets.slint";
+
+export global RecordTAS {
+    in-out property <bool> celeste-started: true;
+
+    callback start-celeste;
+}
 
 export enum TasRecordingState {
     Prepare,
@@ -91,6 +97,16 @@ export component TasRecording inherits VerticalBox {
     Rectangle {
         visible: false;
         vertical-stretch: 1;
+    }
+
+    if !RecordTAS.celeste-started: HorizontalBox {
+        alignment: end;
+        Button {
+            text: "Start Celeste";
+            clicked => {
+                RecordTAS.start-celeste();
+            }
+        }
     }
 
     if state == TasRecordingState.Prepare: Dialog {

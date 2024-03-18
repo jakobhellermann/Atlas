@@ -1,11 +1,11 @@
 import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
     HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView, Spinner } from "std-widgets.slint";
 
-import { TasRecording, TasRecordingState } from "components/tas_recording.slint";
-import { MapRecordings, RecordingsList, Recordings } from "components/recordings_list.slint";
+import { Recordings, MapRecordings, RecordingsList } from "components/recordings_list.slint";
+import { RecordTAS, TasRecording, TasRecordingState } from "components/tas_recording.slint";
 import { Render, RenderSettings, RenderSettingsTable } from "components/render_settings.slint";
 
-export { Recordings, Render }
+export { Recordings, RecordTAS, Render }
 
 enum ActiveWindow {
     Main,

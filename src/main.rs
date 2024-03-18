@@ -158,6 +158,18 @@ pub fn main() {
         move |filter| filtered_recordings::set_filter(&filter, &*filter_model)
     });
 
+    let record_tas_global = main_window.global::<RecordTAS>();
+    record_tas_global.on_start_celeste({
+        let handle = main_window.as_weak();
+        move || {
+            if let Err(e) = opener::open_browser("steam://rungameid/504230") {
+                handle
+                    .unwrap()
+                    .set_record_status_text(format!("Could not start celeste: {e:#?}").into());
+            }
+        }
+    });
+
     let render_global = main_window.global::<Render>();
     render_global.on_render({
         let recordings = filter_model.clone();
@@ -222,6 +234,8 @@ pub fn main() {
         }
     });
 
+    let debugrc = DebugRC::new();
+
     let mut runtime = tokio::runtime::Builder::new_multi_thread();
     #[cfg(target_os = "linux")]
     runtime.enable_io();
@@ -229,8 +243,11 @@ pub fn main() {
 
     main_window.on_pick_tas_files({
         let handle = main_window.as_weak();
+        let debugrc = debugrc.clone();
         move || {
+            let debugrc = debugrc.clone();
             let handle = handle.clone();
+            let handle_2 = handle.clone();
             runtime.spawn(async move {
                 let files = rfd::AsyncFileDialog::new()
                     .add_filter("TAS", &["tas"])
@@ -247,6 +264,14 @@ pub fn main() {
                     })
                     .unwrap();
             });
+            runtime.spawn_blocking(move || {
+                let ok = debugrc.get("/").is_ok();
+                handle_2
+                    .upgrade_in_event_loop(move |handle| {
+                        handle.global::<RecordTAS>().set_celeste_started(ok);
+                    })
+                    .unwrap();
+            });
         }
     });
 
@@ -255,7 +280,6 @@ pub fn main() {
         // dbg!(_res);
     });
     main_window.on_record_tases({
-        let debugrc = DebugRC::new();
         let handle = main_window.as_weak();
         move |files, speedup, run_as_merged| {
             let files = files
