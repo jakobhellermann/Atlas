@@ -125,8 +125,10 @@ export component RecordingsList inherits VerticalLayout {
                     }
 
                     clicked => {
-                        header-cb.checked = !header-cb.checked;
-                        header-cb.toggled()
+                        if header-cb.enabled {
+                            header-cb.checked = !header-cb.checked;
+                            header-cb.toggled()
+                        }
                     }
                 }
             }
@@ -145,6 +147,7 @@ export component RecordingsList inherits VerticalLayout {
                         alignment: start;
 
                         recording-cb := CheckBox {
+                            enabled: map.map-bin != "";
                             checked: recording.checked;
 
                             toggled => {
@@ -179,8 +182,10 @@ export component RecordingsList inherits VerticalLayout {
                             }
 
                             clicked => {
-                                recording-cb.checked = !recording-cb.checked;
-                                recording-cb.toggled();
+                                if recording-cb.enabled {
+                                    recording-cb.checked = !recording-cb.checked;
+                                    recording-cb.toggled();
+                                }
                             }
                         }
                     }
