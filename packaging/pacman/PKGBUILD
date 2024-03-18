@@ -1,0 +1,33 @@
+# Maintainer: Jakob Hellermann <jakob.hellermann@protonmail.com>
+pkgname=atlas-celeste-git
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='Render and visualize paths for Celeste TASes'
+url='https://github.com/jakobhellermann/Atlas'
+makedepends=('git' 'rust' 'cargo' 'imagemagick')
+arch=('i686' 'x86_64' 'armv6h' 'armv7h')
+license=('MIT')
+source=("$pkgname::git+https://github.com/jakobhellermann/Atlas")
+sha1sums=('SKIP')
+
+build() {
+    cd "$pkgname"
+    CARGO_TARGET_DIR=target cargo build --release
+}
+
+package() {
+    cd "$pkgname"
+
+    install -Dm755 target/release/atlas "$pkgdir/usr/bin/atlas"
+    install -Dm644 LICENSE.md "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+    mkdir -p "${pkgdir}/usr/share/icons/hicolor/"{'256x256/apps','48x48/apps','32x32/apps','16x16/apps'}
+    convert "ui/assets/icon.png" -resize 256x265 "${pkgdir}/usr/share/icons/hicolor/256x256/apps/atlas.png"
+    convert "ui/assets/icon.png" -resize 48x48 "${pkgdir}/usr/share/icons/hicolor/48x48/apps/atlas.png"
+    convert "ui/assets/icon.png" -resize 32x32 "${pkgdir}/usr/share/icons/hicolor/32x32/apps/atlas.png"
+    convert "ui/assets/icon.png" -resize 16x16 "${pkgdir}/usr/share/icons/hicolor/16x16/apps/atlas.png"
+
+    install -Dm 644 "packaging/pacman/atlas.desktop" "${pkgdir}/usr/share/applications/atlas.desktop"
+}
+
+
