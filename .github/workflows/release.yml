@@ -1,0 +1,87 @@
+name: release
+on:
+  push:
+    tags:
+    - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    name: build windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet tool install --global wix
+
+      - run: cargo build --release
+      # todo: package wix
+
+      - uses: vimtor/action-zip@v1.1
+        with:
+          files: "target/release/atlas.exe"
+          dest: windows.zip
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "windows.zip"
+          allowUpdates: true
+
+  build-linux:
+    runs-on: ubuntu-latest
+    name: build linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-bundle
+
+      - run: cargo build --release
+      - run: cargo bundle --release --format deb
+
+      - uses: vimtor/action-zip@v1.1
+        with:
+          files: "target/release/atlas"
+          dest: linux.zip
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "linux.zip,target/release/bundle/deb/atlas*.deb"
+          allowUpdates: true
+
+  build-macos:
+    runs-on: macos-latest
+    name: build macOS
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: ConorMacBride/install-package@v1
+        with:
+          brew: create-dmg
+      - run: cargo install cargo-bundle
+
+      - run: cargo build --release
+      - run: cargo bundle --release --format osx
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "Atlas" \
+            --window-pos 200 120 \
+            --window-size 700 580 \
+            --icon-size 100 \
+            --icon "Atlas.app" 165 250 \
+            --hide-extension "Atlas.app" \
+            --app-drop-link 535 250 \
+            "Atlas.dmg" \
+            "target/release/bundle/osx"
+
+      - uses: vimtor/action-zip@v1.1
+        with:
+          files: "target/release/atlas"
+          dest: macOS.zip
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "macOS.zip,Atlas.dmg"
+          allowUpdates: true

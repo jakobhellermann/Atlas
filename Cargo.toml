@@ -1,6 +1,8 @@
 [package]
 name = "atlas"
 description = "Render and visualize paths for Celeste TASes"
+license = "MIT"
+authors = ["Jakob Hellermann <jakob.hellermann@protonmail.com>"]
 version = "1.0.0"
 edition = "2021"
 
@@ -31,3 +33,8 @@ opt-level = 2
 
 [profile.release]
 strip = "symbols"
+
+[package.metadata.bundle]
+name = "Atlas"
+identifier = "io.github.jakobhellermann.atlas"
+icon = ["ui/assets/icon_128x128.png"]
