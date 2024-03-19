@@ -2,7 +2,7 @@ import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
     HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView, Spinner } from "std-widgets.slint";
 
 import { Recordings, MapRecordings, RecordingsList } from "components/recordings_list.slint";
-import { RecordTAS, TasRecording, TasRecordingState } from "components/tas_recording.slint";
+import { RecordTAS, TasRecording, TasRecordingState } from "components/record_tas.slint";
 import { Render, RenderSettings, RenderSettingsTable } from "components/render_settings.slint";
 
 export { Recordings, RecordTAS, Render }
@@ -48,7 +48,6 @@ export component MainWindow inherits Window {
     in-out property <string> error: "";
 
     // actions
-    callback pick-tas-files();
     callback pick-tas-files-done([string]);
 
     // entrypoints
@@ -57,8 +56,6 @@ export component MainWindow inherits Window {
     callback record-ok;
 
     // recording
-    callback record-tases([string], float, bool);
-    callback abort-tas;
     private property <TasRecordingState> record-state;
     private property <[string]> record-paths;
     in-out property <float> record-progress;
@@ -104,7 +101,7 @@ export component MainWindow inherits Window {
             record-state = TasRecordingState.Running;
             record-status-text = "";
             record-progress = 0.0;
-            record-tases(paths, fastforward-speed, run-as-merged);
+            RecordTAS.record-tases(paths, fastforward-speed, run-as-merged);
         }
 
         ok => {
@@ -115,7 +112,7 @@ export component MainWindow inherits Window {
         }
         abort => {
             nav = ActiveWindow.Main;
-            abort-tas();
+            RecordTAS.abort-tas();
             record-state = TasRecordingState.Prepare;
             record-status-text = "";
             record-progress = 0.0;
@@ -128,7 +125,7 @@ export component MainWindow inherits Window {
                 clicked => {
                     error = "";
                     record-state = TasRecordingState.Prepare;
-                    pick-tas-files();
+                    RecordTAS.pick-tas-files();
                 }
 
                 text: "Record TASes";

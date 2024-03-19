@@ -1,8 +1,11 @@
 import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox, ScrollView, Button } from "std-widgets.slint";
 
 export global RecordTAS {
-    in-out property <bool> celeste-started: true;
+    callback pick-tas-files();
+    callback record-tases([string], float, bool);
+    callback abort-tas;
 
+    in-out property <bool> celeste-started: true;
     callback start-celeste;
 }
 
