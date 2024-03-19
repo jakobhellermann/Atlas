@@ -38,3 +38,9 @@ strip = "symbols"
 name = "Atlas"
 identifier = "io.github.jakobhellermann.atlas"
 icon = ["ui/assets/icon_128x128.png"]
+
+# [patch.crates-io]
+# celesteloader = { path = "../celestetools/crates/celesteloader" }
+# celesterender = { path = "../celestetools/crates/celesterender" }
+# celestedebugrc = { path = "../celestetools/crates/celestedebugrc" }
+# annotate_celeste_map = { path = "../celestetools/crates/annotate_celeste_map" }
