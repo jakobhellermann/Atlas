@@ -1,17 +1,20 @@
-<img src="./ui/assets/icon.png" align="left" width="128px"/>
+<p align="center">
+<img src="./ui/assets/icon/icon.png" width="256px"/>
+</p>
 
-# Atlas
+<h3 align="center">
+Atlas
+</h3>
+<p align="center">
+Path recorder and renderer for Celeste TASes.
+</p>
 
-Record and render paths for celeste TASes
-(new logo in the works)
-
-<br clear="left"/>
 
 ## Usage
 
 ### Prerequisites
 
-- Download @viddie's Consistency Tracker Mod ([Olympus 1-Click Install](everest:https://gamebanana.com/mmdl/1146408,Mod,358978"))
+- Download @viddie's Consistency Tracker Mod ([Gamebanana](https://gamebanana.com/mods/358978))
     - increase the max recordings count (default is 10)
 
 ### App
