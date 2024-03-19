@@ -70,7 +70,7 @@ jobs:
             --volname "Atlas" \
             --background "docs/dmg_background.png" \
             --window-pos 200 120 \
-            --window-size 700 580 \
+            --window-size 700 500 \
             --icon-size 100 \
             --icon "Atlas.app" 165 250 \
             --hide-extension "Atlas.app" \
