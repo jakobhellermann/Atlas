@@ -42,7 +42,7 @@ pub fn setup(
                     .unwrap();
             });
             runtime.spawn_blocking(move || {
-                let ok = debugrc.get("/").is_ok();
+                let ok = debugrc.get("").is_ok();
                 handle_2
                     .upgrade_in_event_loop(move |handle| {
                         handle.global::<RecordTAS>().set_celeste_started(ok);
@@ -92,8 +92,7 @@ pub fn setup(
                                 status.current_frame,
                                 status.total_frames
                             );
-                            let percentage = (status.current_file as f32
-                                + percentage_in_tas)
+                            let percentage = (status.current_file as f32 + percentage_in_tas)
                                 / status.total_files as f32;
                             (msg, percentage)
                         } else {
