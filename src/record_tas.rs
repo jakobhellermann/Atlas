@@ -93,7 +93,7 @@ pub fn setup(
                                 status.total_frames
                             );
                             let percentage = (status.current_file as f32
-                                + percentage_in_tas as f32)
+                                + percentage_in_tas)
                                 / status.total_files as f32;
                             (msg, percentage)
                         } else {

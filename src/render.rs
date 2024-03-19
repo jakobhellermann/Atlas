@@ -119,7 +119,7 @@ fn render_recordings(
     mut only_include_visited_rooms: bool,
     on_error: impl Fn(anyhow::Error),
 ) -> Result<()> {
-    let mut state = RenderState::new(&celeste)?;
+    let mut state = RenderState::new(celeste)?;
 
     for ((map_bin, name), recordings) in map_bins.into_iter().rev() {
         let visited_rooms = if only_include_visited_rooms {
@@ -195,7 +195,7 @@ fn cct_visited_rooms(
 }
 
 fn catch<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
-    match std::panic::catch_unwind(AssertUnwindSafe(|| f())) {
+    match std::panic::catch_unwind(AssertUnwindSafe(f)) {
         Ok(Ok(val)) => Ok(val),
         Ok(Err(val)) => Err(val),
         Err(e) => {

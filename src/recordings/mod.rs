@@ -45,13 +45,13 @@ pub fn setup(
         move || {
             let all_selected = recordings
                 .iter()
-                .all(|map| map.checked || map.map_bin == "");
-            let new_selection = if all_selected { false } else { true };
+                .all(|map| map.checked || map.map_bin.is_empty());
+            let new_selection = !all_selected;
 
             let mut new = Vec::new();
             for j in 0..recordings.row_count() {
                 let mut map = recordings.row_data(j).unwrap();
-                let has_map_bin = map.map_bin != "";
+                let has_map_bin = !map.map_bin.is_empty();
 
                 for i in 0..map.recordings.row_count() {
                     let mut recording = map.recordings.row_data(i).unwrap();
@@ -156,7 +156,7 @@ pub fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<MapRe
         let map_bin = layout.map_bin.unwrap_or_default();
         let map_bin = match is_vanilla && !old_cct {
             true => format!("Celeste/{map_bin}"),
-            false => map_bin.into(),
+            false => map_bin,
         };
 
         let name = match layout.side_name.as_str() {
