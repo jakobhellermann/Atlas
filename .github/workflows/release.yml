@@ -68,6 +68,7 @@ jobs:
         run: |
           create-dmg \
             --volname "Atlas" \
+            --background "docs/dmg_background.png" \
             --window-pos 200 120 \
             --window-size 700 580 \
             --icon-size 100 \
