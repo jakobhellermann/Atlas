@@ -162,7 +162,8 @@ fn render_recordings(
                 )?;
             }
 
-            let tmp = std::env::temp_dir();
+            let tmp = std::env::temp_dir().join("atlas");
+            std::fs::create_dir_all(&tmp)?;
             let out_path = tmp.join(format!("{}.png", map_bin.replace(['/'], "_")));
             result.image.save_png(&out_path)?;
 
