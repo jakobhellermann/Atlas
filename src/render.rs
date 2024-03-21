@@ -172,6 +172,21 @@ fn render_recordings(
                 start.elapsed().as_millis()
             );
 
+            if result.unknown_entities.len() > 0 {
+                let mut unknown = result.unknown_entities.iter().collect::<Vec<_>>();
+                unknown.sort_by_key(|&(_, n)| std::cmp::Reverse(n));
+
+                eprintln!(
+                    "Found {:2} unknown entities: ({} ...)",
+                    unknown.len(),
+                    unknown
+                        .iter()
+                        .take(5)
+                        .map(|(name, num)| format!("{num} {name} "))
+                        .collect::<String>()
+                );
+            }
+
             opener::open(&out_path)?;
             Ok(())
         })() {
