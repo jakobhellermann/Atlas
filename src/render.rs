@@ -22,6 +22,7 @@ pub fn setup(
         move |settings| {
             let color_mode = match settings.color_mode.as_str() {
                 "Gradient" => ColorMode::Gradient,
+                "Random" => ColorMode::Random,
                 "StState" => ColorMode::State,
                 "Red" => ColorMode::Color([255, 0, 0, 255]),
                 _ => unreachable!(),
@@ -149,18 +150,16 @@ fn render_recordings(
             // let size = result.bounds.area();
             // let density = size_filled / size;
 
-            for recording in recordings {
-                // let width = Some(2.0);
-                // let width = width.unwrap_or_else(|| if density > 0.5 { 8.0 } else { 3.0 });
+            // let width = Some(2.0);
+            // let width = width.unwrap_or_else(|| if density > 0.5 { 8.0 } else { 3.0 });
 
-                annotate_celeste_map::annotate_cct_recording_skia(
-                    &mut result.image,
-                    &state.physics_inspector,
-                    recording as u32,
-                    result.bounds,
-                    line_settings,
-                )?;
-            }
+            annotate_celeste_map::annotate_cct_recording_skia(
+                &mut result.image,
+                &state.physics_inspector,
+                recordings.into_iter().map(|i| i as u32),
+                result.bounds,
+                line_settings,
+            )?;
 
             let tmp = std::env::temp_dir().join("atlas");
             std::fs::create_dir_all(&tmp)?;
