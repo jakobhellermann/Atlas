@@ -1,16 +1,31 @@
 
 import { ComboBox, Slider, CheckBox } from "std-widgets.slint";
 
+struct Layer {
+    fgtiles: bool,
+    bgtiles: bool,
+    entities: bool,
+    fgdecals: bool,
+    bgdecals: bool,
+}
+
 export struct RenderSettings {
     width: float,
     only-render-visited: bool,
     color-mode: string,
     anti-alias: bool,
+    layer: Layer,
 }
 
 export global Render {
     callback render(RenderSettings);
-    in property <RenderSettings> render-settings: { width: 2, only-render-visited: true, color-mode: "StState", anti-alias: true };
+    in property <RenderSettings> render-settings: {
+        width: 2,
+        only-render-visited: true,
+        color-mode: "StState",
+        anti-alias: true,
+        layer: { fgtiles: true, bgtiles: true, entities: true, fgdecals: true, bgdecals: true },
+    };
     in property <bool> rendering: false;
 }
 
@@ -94,6 +109,56 @@ export component RenderSettingsTable inherits GridLayout {
                 checked: Render.render-settings.anti-alias;
                 toggled => {
                     Render.render-settings.anti-alias = self.checked;
+                }
+            }
+        }
+    }
+
+    Row {
+        Text {
+            vertical-alignment: center;
+            text: "Layers";
+        }
+
+        HorizontalLayout {
+            alignment: space-between;
+            CheckBox {
+                text: "Tiles (FG)";
+                checked: Render.render-settings.layer.fgtiles;
+                toggled => {
+                    Render.render-settings.layer.fgtiles = self.checked;
+                }
+            }
+
+            CheckBox {
+                text: "Tiles (BG)";
+                checked: Render.render-settings.layer.bgtiles;
+                toggled => {
+                    Render.render-settings.layer.bgtiles = self.checked;
+                }
+            }
+
+            CheckBox {
+                text: "Entities";
+                checked: Render.render-settings.layer.entities;
+                toggled => {
+                    Render.render-settings.layer.entities = self.checked;
+                }
+            }
+
+            CheckBox {
+                text: "Decals (FG)";
+                checked: Render.render-settings.layer.fgdecals;
+                toggled => {
+                    Render.render-settings.layer.fgdecals = self.checked;
+                }
+            }
+
+            CheckBox {
+                text: "Decals (BG)";
+                checked: Render.render-settings.layer.bgdecals;
+                toggled => {
+                    Render.render-settings.layer.bgdecals = self.checked;
                 }
             }
         }

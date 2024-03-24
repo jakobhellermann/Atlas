@@ -28,6 +28,25 @@ pub fn setup(
                 _ => unreachable!(),
             };
 
+            let layer = [
+                (settings.layer.fgtiles, Layer::TILES_FG),
+                (settings.layer.bgtiles, Layer::TILES_BG),
+                (settings.layer.entities, Layer::ENTITIES),
+                (settings.layer.fgdecals, Layer::DECALS_FG),
+                (settings.layer.bgdecals, Layer::DECALS_BG),
+            ]
+            .into_iter()
+            .fold(
+                Layer::NONE,
+                |acc, (include, layer)| {
+                    if include {
+                        acc | layer
+                    } else {
+                        acc
+                    }
+                },
+            );
+
             let map_bins: IndexMap<(String, String), Vec<_>> = recordings
                 .iter()
                 .filter_map(|map| {
@@ -58,6 +77,7 @@ pub fn setup(
                         color_mode,
                         anti_alias: settings.anti_alias,
                     },
+                    layer,
                     settings.only_render_visited,
                     |e| {
                         let msg = format!("{e:?}").into();
@@ -117,6 +137,7 @@ fn render_recordings(
     map_bins: IndexMap<(String, String), Vec<i32>>,
     celeste: &CelesteInstallation,
     line_settings: LineSettings,
+    layer: Layer,
     mut only_include_visited_rooms: bool,
     on_error: impl Fn(anyhow::Error),
 ) -> Result<()> {
@@ -136,7 +157,7 @@ fn render_recordings(
         if let Err(e) = (|| -> Result<()> {
             let start = std::time::Instant::now();
             let render_settings = RenderMapSettings {
-                layer: Layer::ALL,
+                layer,
                 include_room: &|room| {
                     !only_include_visited_rooms
                         || visited_rooms.contains(room.name.trim_start_matches("lvl_"))
