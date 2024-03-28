@@ -5,6 +5,7 @@ use celesterender::asset::{AssetDb, ModLookup};
 use celesterender::{CelesteRenderData, Layer, RenderMapSettings, RenderResult};
 use indexmap::IndexMap;
 use slint::{ComponentHandle, FilterModel, Model, VecModel, Weak};
+use std::time::Instant;
 use std::{collections::HashSet, panic::AssertUnwindSafe, rc::Rc};
 
 use crate::{MainWindow, MapRecordings, Render};
@@ -155,7 +156,6 @@ fn render_recordings(
         };
 
         if let Err(e) = (|| -> Result<()> {
-            let start = std::time::Instant::now();
             let render_settings = RenderMapSettings {
                 layer,
                 include_room: &|room| {
@@ -163,6 +163,8 @@ fn render_recordings(
                         || visited_rooms.contains(room.name.trim_start_matches("lvl_"))
                 },
             };
+
+            let start_render = Instant::now();
             let (mut result, _map) = state
                 .render(&map_bin, render_settings)
                 .with_context(|| format!("failed to render {name}"))?;
@@ -174,6 +176,7 @@ fn render_recordings(
             // let width = Some(2.0);
             // let width = width.unwrap_or_else(|| if density > 0.5 { 8.0 } else { 3.0 });
 
+            let start_annotate = Instant::now();
             annotate_celeste_map::annotate_cct_recording_skia(
                 &mut result.image,
                 &state.physics_inspector,
@@ -182,14 +185,19 @@ fn render_recordings(
                 line_settings,
             )?;
 
+            let start_encode = Instant::now();
             let tmp = std::env::temp_dir().join("atlas");
             std::fs::create_dir_all(&tmp)?;
             let out_path = tmp.join(format!("{}.png", map_bin.replace(['/'], "_")));
-            result.image.save_png(&out_path)?;
+            result.save_png(&out_path, celesterender::Compression::Default)?;
+
+            let end = Instant::now();
 
             println!(
-                "Rendered map {map_bin} in {:.2}ms",
-                start.elapsed().as_millis()
+                "Rendered map {map_bin} in {:.2}ms render {:.2}ms annotate {:.2}ms encode",
+                (start_annotate - start_render).as_millis(),
+                (start_encode - start_annotate).as_millis(),
+                (end - start_encode).as_millis(),
             );
 
             if result.unknown_entities.len() > 0 {
@@ -197,7 +205,7 @@ fn render_recordings(
                 unknown.sort_by_key(|&(_, n)| std::cmp::Reverse(n));
 
                 eprintln!(
-                    "Found {:2} unknown entities: ({} ...)",
+                    "  Found {} unknown entities: ({} ...)",
                     unknown.len(),
                     unknown
                         .iter()
