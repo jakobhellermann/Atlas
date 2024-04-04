@@ -11,6 +11,7 @@ pub mod watcher;
 
 use crate::{MainWindow, MapRecordings, Recording, Recordings};
 
+#[allow(clippy::type_complexity)]
 pub fn load_model(
     main_window: &MainWindow,
     physics_inspector: &PhysicsInspector,
@@ -66,7 +67,7 @@ pub fn setup(
             }
             recordings.set_vec(new);
 
-            recalc_compare_recordings_enabled(handle.clone(), &*recordings);
+            recalc_compare_recordings_enabled(handle.clone(), &recordings);
         }
     });
     recordings_global.on_toggle_map({
@@ -86,7 +87,7 @@ pub fn setup(
                 list.recordings.set_row_data(i, recording);
             }
 
-            recalc_compare_recordings_enabled(handle.clone(), &*recordings);
+            recalc_compare_recordings_enabled(handle.clone(), &recordings);
         }
     });
     recordings_global.on_toggle_map_recording({
@@ -105,7 +106,7 @@ pub fn setup(
             list.checked = any_checked;
             recordings.set_row_data(j, list);
 
-            recalc_compare_recordings_enabled(handle.clone(), &*recordings);
+            recalc_compare_recordings_enabled(handle.clone(), &recordings);
         }
     });
 

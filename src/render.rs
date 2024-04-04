@@ -5,6 +5,7 @@ use celesterender::asset::{AssetDb, ModLookup};
 use celesterender::{CelesteRenderData, Layer, RenderMapSettings, RenderResult};
 use indexmap::IndexMap;
 use slint::{ComponentHandle, FilterModel, Model, VecModel, Weak};
+use std::fmt::Write;
 use std::time::Instant;
 use std::{collections::HashSet, panic::AssertUnwindSafe, rc::Rc};
 
@@ -200,7 +201,7 @@ fn render_recordings(
                 (end - start_encode).as_millis(),
             );
 
-            if result.unknown_entities.len() > 0 {
+            if !result.unknown_entities.is_empty() {
                 let mut unknown = result.unknown_entities.iter().collect::<Vec<_>>();
                 unknown.sort_by_key(|&(_, n)| std::cmp::Reverse(n));
 
@@ -210,8 +211,10 @@ fn render_recordings(
                     unknown
                         .iter()
                         .take(5)
-                        .map(|(name, num)| format!("{num} {name} "))
-                        .collect::<String>()
+                        .fold(String::new(), |mut acc, (num, name)| {
+                            let _ = write!(&mut acc, "{num} {name} ");
+                            acc
+                        })
                 );
             }
 
