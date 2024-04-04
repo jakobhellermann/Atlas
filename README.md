@@ -37,3 +37,9 @@ Path recorder and renderer for Celeste TASes.
 **Q**: An entity is missing from the map png
 
 **A**: Open an [issue](https://github.com/jakobhellermann/Atlas/issues/new) and I'll try to fix it
+
+## Development
+
+- Setup [rust](https://rustup.rs/)
+- `cargo build --release` (or `just build`) to build
+- `just install` to build and package the msi and install it on windows
