@@ -5,14 +5,14 @@ export global Recordings {
     callback refresh-recordings;
     callback delete-recordings;
 
-    callback toggle-select-all();
-    callback toggle-expand-map(string);
-    callback toggle-expand-map-recording(string, int);
+    callback select-all();
+    callback toggle-map(string);
+    callback toggle-map-recording(string, int);
 
     callback set-filter(string);
 
     out property <bool> searching;
-    public function toggle-search() {
+    public function toggle-search(){
         searching = !searching;
     }
 }
@@ -112,7 +112,7 @@ export component RecordingsList inherits VerticalLayout {
 
                     toggled => {
                         map.checked = self.checked;
-                        Recordings.toggle-expand-map(map.map-bin);
+                        Recordings.toggle-map(map.map-bin);
                     }
                 }
 
@@ -152,7 +152,7 @@ export component RecordingsList inherits VerticalLayout {
 
                             toggled => {
                                 recording.checked = self.checked;
-                                Recordings.toggle-expand-map-recording(map.map-bin, recording.i);
+                                Recordings.toggle-map-recording(map.map-bin, recording.i);
                                 header-cb.checked = map.checked;
                             }
                         }

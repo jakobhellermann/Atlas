@@ -40,7 +40,7 @@ pub fn setup(
     physics_inspector: &PhysicsInspector,
     filter_model: &Rc<FilterModel<Rc<VecModel<MapRecordings>>, impl Fn(&MapRecordings) -> bool>>,
 ) {
-    recordings_global.on_toggle_select_all({
+    recordings_global.on_select_all({
         let recordings = recordings_unfiltered.clone();
         move || {
             let all_selected = recordings
@@ -65,7 +65,7 @@ pub fn setup(
             recordings.set_vec(new);
         }
     });
-    recordings_global.on_toggle_expand_map({
+    recordings_global.on_toggle_map({
         let recordings = recordings_unfiltered.clone();
         move |map_bin| {
             let Some(list) = recordings
@@ -82,7 +82,7 @@ pub fn setup(
             }
         }
     });
-    recordings_global.on_toggle_expand_map_recording({
+    recordings_global.on_toggle_map_recording({
         let recordings = recordings_unfiltered.clone();
         move |map_bin, _| {
             let Some((j, mut list)) = recordings

@@ -81,7 +81,7 @@ export component MainWindow inherits Window {
                 return EventResult.accept;
             }
             if (event.modifiers.control && event.text == "a" && !event.repeat) {
-                Recordings.toggle-select-all();
+                Recordings.select-all();
                 return EventResult.accept;
             }
             if (event.modifiers.control && event.text == "\n") {
