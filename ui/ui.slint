@@ -62,7 +62,6 @@ export component MainWindow inherits Window {
     in-out property <string> record-status-text;
 
     // render
-
     record-done(success) => {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
     }
@@ -72,6 +71,9 @@ export component MainWindow inherits Window {
             nav = ActiveWindow.Record;
         }
     }
+
+    // compare timesave
+    in property <string> compare-timesave-text;
 
     forward-focus: key-handler;
     key-handler := FocusScope {
@@ -119,6 +121,28 @@ export component MainWindow inherits Window {
         }
     }
     if nav == ActiveWindow.Main: VerticalBox {
+        compare-timesave-popup := PopupWindow {
+            dialog := Rectangle {
+                width: text.preferred-width;
+                height: text.preferred-height;
+                background: Palette.alternate-background;
+                border-color: Palette.border;
+                border-width: 2px;
+                text := HorizontalLayout {
+                    padding: 8px;
+                    Text {
+                        text: compare-timesave-text;
+                    }
+                }
+            }
+
+            height: dialog.preferred-height;
+            width: dialog.preferred-width;
+
+            x: 200px;
+            y: 200px;
+        }
+
         HorizontalLayout {
             padding: 8px;
             Button {
@@ -156,7 +180,22 @@ export component MainWindow inherits Window {
             }
 
             HorizontalLayout {
+
                 alignment: end;
+                spacing: 8px;
+
+                compare-button := Button {
+                    height: 32px;
+                    visible: Recordings.compare-recordings-enabled;
+
+                    clicked => {
+                        error = "";
+                        Recordings.compare-times();
+                        compare-timesave-popup.show();
+                    }
+
+                    text: "Compare Times";
+                }
 
                 render-button := Button {
                     height: 32px;

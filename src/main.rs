@@ -42,8 +42,8 @@ pub fn main() {
         main_window.global::<Recordings>(),
         main_window.as_weak(),
         recordings_unfiltered,
-        &physics_inspector,
         &filter_model,
+        &celeste,
     );
 
     let record_tas_global = main_window.global::<RecordTAS>();

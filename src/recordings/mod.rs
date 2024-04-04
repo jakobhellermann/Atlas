@@ -1,8 +1,9 @@
 use anyhow::Result;
-use celesteloader::cct_physics_inspector::PhysicsInspector;
+use celesteloader::{cct_physics_inspector::PhysicsInspector, CelesteInstallation};
 use chrono::DateTime;
+use copypasta::ClipboardProvider;
 use indexmap::IndexMap;
-use slint::{FilterModel, Model, VecModel, Weak};
+use slint::{ComponentHandle, FilterModel, Model, VecModel, Weak};
 use std::rc::Rc;
 
 mod filtered_recordings;
@@ -37,10 +38,11 @@ pub fn setup(
     recordings_global: Recordings<'_>,
     main_window: Weak<MainWindow>,
     recordings_unfiltered: Rc<VecModel<MapRecordings>>,
-    physics_inspector: &PhysicsInspector,
     filter_model: &Rc<FilterModel<Rc<VecModel<MapRecordings>>, impl Fn(&MapRecordings) -> bool>>,
+    celeste: &CelesteInstallation,
 ) {
     recordings_global.on_select_all({
+        let handle = main_window.clone();
         let recordings = recordings_unfiltered.clone();
         move || {
             let all_selected = recordings
@@ -63,9 +65,12 @@ pub fn setup(
                 new.push(map);
             }
             recordings.set_vec(new);
+
+            recalc_compare_recordings_enabled(handle.clone(), &*recordings);
         }
     });
     recordings_global.on_toggle_map({
+        let handle = main_window.clone();
         let recordings = recordings_unfiltered.clone();
         move |map_bin| {
             let Some(list) = recordings
@@ -80,9 +85,12 @@ pub fn setup(
                 recording.checked = list.checked;
                 list.recordings.set_row_data(i, recording);
             }
+
+            recalc_compare_recordings_enabled(handle.clone(), &*recordings);
         }
     });
     recordings_global.on_toggle_map_recording({
+        let handle = main_window.clone();
         let recordings = recordings_unfiltered.clone();
         move |map_bin, _| {
             let Some((j, mut list)) = recordings
@@ -96,11 +104,22 @@ pub fn setup(
             let any_checked = list.recordings.iter().any(|rec| rec.checked);
             list.checked = any_checked;
             recordings.set_row_data(j, list);
+
+            recalc_compare_recordings_enabled(handle.clone(), &*recordings);
+        }
+    });
+
+    recordings_global.on_compare_times({
+        let recordings = recordings_unfiltered.clone();
+        let celeste = celeste.clone();
+        let handle = main_window.clone();
+        move || {
+            compare_recordings(handle.clone(), &recordings, &celeste);
         }
     });
     recordings_global.on_refresh_recordings({
         let recordings = recordings_unfiltered.clone();
-        let physics_inspector = physics_inspector.clone();
+        let physics_inspector = celeste.physics_inspector();
         let handle = main_window.clone();
         move || {
             recordings.set_vec(Vec::new());
@@ -113,7 +132,7 @@ pub fn setup(
         }
     });
     recordings_global.on_delete_recordings({
-        let physics_inspector = physics_inspector.clone();
+        let physics_inspector = celeste.physics_inspector();
         let recordings = Rc::clone(&recordings_unfiltered);
         let handle = main_window.clone();
         move || {
@@ -202,4 +221,107 @@ pub fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<MapRe
             recordings: Rc::new(VecModel::from(recordings)).into(),
         })
         .collect())
+}
+
+fn recalc_compare_recordings_enabled(
+    handle: Weak<MainWindow>,
+    recordings: &VecModel<MapRecordings>,
+) {
+    let main_window = handle.unwrap();
+
+    let mut all_exactly_two = true;
+    let mut any_two = false;
+
+    for map in recordings.iter() {
+        let n_checked = map.recordings.iter().filter(|rec| rec.checked).count();
+
+        if n_checked == 0 {
+            continue;
+        }
+
+        if n_checked == 2 {
+            any_two = true;
+        } else {
+            all_exactly_two = false;
+        }
+    }
+
+    main_window
+        .global::<Recordings>()
+        .set_compare_recordings_enabled(any_two && all_exactly_two);
+}
+
+fn compare_recordings(
+    handle: Weak<MainWindow>,
+    recordings_unfiltered: &VecModel<MapRecordings>,
+    celeste: &CelesteInstallation,
+) {
+    let mut maps: IndexMap<String, Vec<u32>> = IndexMap::new();
+    for map in recordings_unfiltered.iter() {
+        if map.chapter_name.is_empty() {
+            continue;
+        };
+
+        for rec in map.recordings.iter() {
+            if rec.checked {
+                maps.entry(map.map_bin.to_string())
+                    .or_default()
+                    .push(rec.i as u32);
+            }
+        }
+    }
+
+    let celeste = celeste.clone();
+    std::thread::spawn(move || {
+        let result = (|| -> Result<_> {
+            let mut renders = Vec::new();
+
+            for (map_bin, recordings) in maps {
+                let (map, archive) = celeste.find_map_by_map_bin(&map_bin)?;
+
+                let map_name = archive
+                    .map(|mut archive| -> Result<_> {
+                        let dialog = archive.get_dialog("English")?;
+                        let map_name = dialog.get(&map_bin).unwrap_or(&map_bin);
+                        Ok(map_name.to_owned())
+                    })
+                    .transpose()?
+                    .unwrap_or_else(|| map_bin.clone());
+
+                if recordings.len() != 2 {
+                    continue;
+                }
+
+                let a = celesteloader::cct_physics_inspector::compare_timesave::compare_timesave(
+                    &celeste.physics_inspector(),
+                    &map,
+                    &map_name,
+                    (recordings[0], recordings[1]),
+                )?;
+                renders.push(a);
+            }
+
+            Ok(renders)
+        })();
+
+        handle
+            .upgrade_in_event_loop(move |handle| match result {
+                Ok(renderings) => {
+                    let text = renderings.join("\n\n");
+
+                    let clip_msg = match copypasta::ClipboardContext::new()
+                        .and_then(|mut clip| clip.set_contents(text.clone()))
+                    {
+                        Ok(()) => "Copied to clipboard".into(),
+                        Err(e) => format!("Failed to copy to clipboard: {e}"),
+                    };
+
+                    handle.set_compare_timesave_text(format!("{text}\n{clip_msg}").into());
+                }
+                Err(e) => {
+                    handle.set_error(format!("{e:?}").into());
+                }
+            })
+            .unwrap();
+    });
 }

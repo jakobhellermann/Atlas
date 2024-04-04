@@ -13,6 +13,7 @@ celestedebugrc = "0.1"
 annotate_celeste_map = "0.1"
 
 slint = { version = "1.5", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-femtovg"] }
+copypasta = "0.10"
 rfd = { version = "0.14.0", default-features = false, features = ["xdg-portal", "tokio"] }
 tokio = { version = "1.36", features = ["rt-multi-thread"] }
 opener = "0.6.1"
