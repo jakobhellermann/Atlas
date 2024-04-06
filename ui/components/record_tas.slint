@@ -1,8 +1,13 @@
 import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox, ScrollView, Button, Palette } from "std-widgets.slint";
 
+export struct RecordPath {
+    path: string,
+    git-commit: string, // empty if not in git or not changed
+}
+
 export global RecordTAS {
     callback pick-tas-files();
-    callback record-tases([string], float, bool);
+    callback record-tases([RecordPath], float, bool, bool);
     callback abort-tas;
 
     in-out property <bool> celeste-started: true;
@@ -17,15 +22,19 @@ export enum TasRecordingState {
 }
 
 export component TasRecording inherits VerticalBox {
-    in property <[string]> paths: ["2a.tas", "3a.tas"];
+    in property <[RecordPath]> paths: [
+        { path: "2a.tas" },
+        { path: "3a.tas" },
+    ];
     in property <float> progress <=> progress.progress;
     in property <string> status-text <=> status.text;
     in property <TasRecordingState> state;
 
     property <float> fastforward-speed: 500.0;
+    property <bool> record-git-tree: false;
     property <bool> run-as-merged: false;
 
-    callback record-tases([string], float, bool);
+    callback record-tases([RecordPath], float, bool, bool);
     callback ok;
     callback abort;
 
@@ -53,7 +62,7 @@ export component TasRecording inherits VerticalBox {
             x := VerticalLayout {
                 spacing: 6px;
 
-                for path in paths: HorizontalLayout {
+                for path in paths: VerticalLayout {
                     Rectangle {
                         background: Palette.control-background;
                         border-color: Palette.border;
@@ -67,14 +76,31 @@ export component TasRecording inherits VerticalBox {
                             alignment: space-between;
                             Text {
                                 font-family: "monospace";
-                                text: path;
+                                text: path.path + "";
                             }
+                        }
+                    }
 
-                            /*TouchArea {
+                    if path.git-commit != "":HorizontalLayout {
+                        padding-top: 2px;
+                        padding-left: 8px;
+                        Rectangle {
+                            background: Palette.control-background;
+                            border-color: Palette.border;
+                            border-radius: 4px;
+                            height: hl.preferred-height;
+
+                            HorizontalLayout {
+                                padding: 4px;
+                                padding-right: 16px;
+
+                                alignment: space-between;
                                 Text {
-                                    text: "≡";
+                                    font-family: "monospace";
+                                    color: record-git-tree ? white : #ccc;
+                                    text: path.path + " (" + path.git-commit + ")";
                                 }
-                            }*/
+                            }
                         }
                     }
                 }
@@ -83,7 +109,6 @@ export component TasRecording inherits VerticalBox {
 
         GridLayout {
             padding-top: 8px;
-            spacing: 16px;
 
             Row {
                 Text {
@@ -91,9 +116,9 @@ export component TasRecording inherits VerticalBox {
                     text: "Fastforward Speed";
                 }
 
-                VerticalLayout {
-                    height: sb.preferred-height;
-                    sb := SpinBox {
+                sb := VerticalLayout {
+                    height: 32px;
+                    SpinBox {
                         value: fastforward-speed;
 
                         edited(val) => {
@@ -106,10 +131,27 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Run as merged file.\nUseful for many small files, like lobby connections";
+                    text: "Also record original file before change";
                 }
 
                 CheckBox {
+                    height: sb.height;
+                    checked: record-git-tree;
+
+                    toggled => {
+                        record-git-tree = self.checked;
+                    }
+                }
+            }
+
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Run as merged file (useful for many small files, like lobby connections)";
+                }
+
+                CheckBox {
+                    height: sb.height;
                     checked: run-as-merged;
 
                     toggled => {
@@ -150,7 +192,7 @@ export component TasRecording inherits VerticalBox {
         StandardButton {
             kind: StandardButtonKind.ok;
             clicked => {
-                record-tases(paths, fastforward-speed, run-as-merged);
+                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree);
             }
         }
     }
@@ -191,7 +233,7 @@ export component TasRecording inherits VerticalBox {
         StandardButton {
             kind: StandardButtonKind.retry;
             clicked => {
-                record-tases(paths, fastforward-speed, run-as-merged);
+                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree);
             }
         }
 

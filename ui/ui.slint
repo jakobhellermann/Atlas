@@ -2,10 +2,10 @@ import { SpinBox, Button, CheckBox, Slider, LineEdit, ListView,
     HorizontalBox, VerticalBox, GridBox, StandardButton, Palette, StandardTableView, ComboBox, TabWidget, ProgressIndicator, ScrollView, Spinner } from "std-widgets.slint";
 
 import { Recordings, MapRecordings, RecordingsList } from "components/recordings_list.slint";
-import { RecordTAS, TasRecording, TasRecordingState } from "components/record_tas.slint";
+import { RecordTAS, RecordPath, TasRecording, TasRecordingState } from "components/record_tas.slint";
 import { Render, RenderSettings, RenderSettingsTable } from "components/render_settings.slint";
 
-export { Recordings, RecordTAS, Render }
+export { Recordings, RecordTAS, RecordPath, Render }
 
 enum ActiveWindow {
     Main,
@@ -48,7 +48,7 @@ export component MainWindow inherits Window {
     in-out property <string> error: "";
 
     // actions
-    callback pick-tas-files-done([string]);
+    callback pick-tas-files-done([RecordPath]);
 
     // entrypoints
     callback record-update(float, string, bool);
@@ -57,7 +57,7 @@ export component MainWindow inherits Window {
 
     // recording
     private property <TasRecordingState> record-state;
-    private property <[string]> record-paths;
+    private property <[RecordPath]> record-paths;
     in-out property <float> record-progress;
     in-out property <string> record-status-text;
 
@@ -105,11 +105,11 @@ export component MainWindow inherits Window {
         progress: record-progress;
         status-text: record-status-text;
 
-        record-tases(paths, fastforward-speed, run-as-merged) => {
+        record-tases(paths, fastforward-speed, run-as-merged, record-git-tree) => {
             record-state = TasRecordingState.Running;
             record-status-text = "";
             record-progress = 0.0;
-            RecordTAS.record-tases(paths, fastforward-speed, run-as-merged);
+            RecordTAS.record-tases(paths, fastforward-speed, run-as-merged, record-git-tree);
         }
 
         ok => {
