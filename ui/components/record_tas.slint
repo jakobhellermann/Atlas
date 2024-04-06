@@ -1,4 +1,4 @@
-import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox, ScrollView, Button } from "std-widgets.slint";
+import { VerticalBox, ProgressIndicator, StandardButton, CheckBox, Slider, SpinBox, HorizontalBox, ScrollView, Button, Palette } from "std-widgets.slint";
 
 export global RecordTAS {
     callback pick-tas-files();
@@ -48,50 +48,73 @@ export component TasRecording inherits VerticalBox {
     if state == TasRecordingState.Prepare: VerticalLayout {
         spacing: 8px;
 
-        /*ScrollView {
-            max-height: 200px;
-            preferred-height: 0px;
-            VerticalLayout {
+        ScrollView {
+            height: min(min(x.preferred-height, 400px), root.height - 300px);
+            x := VerticalLayout {
+                spacing: 6px;
+
                 for path in paths: HorizontalLayout {
-                    Text {
-                        text: "- " + path;
+                    Rectangle {
+                        background: Palette.control-background;
+                        border-color: Palette.border;
+                        border-radius: 4px;
+                        height: hl.preferred-height;
+
+                        hl := HorizontalLayout {
+                            padding: 4px;
+                            padding-right: 16px;
+
+                            alignment: space-between;
+                            Text {
+                                font-family: "monospace";
+                                text: path;
+                            }
+
+                            /*TouchArea {
+                                Text {
+                                    text: "≡";
+                                }
+                            }*/
+                        }
                     }
-                }
-            }
-        }*/
-
-        HorizontalLayout {
-            alignment: start;
-            spacing: 8px;
-
-            Text {
-                vertical-alignment: center;
-                text: "Fastforward Speed";
-            }
-
-            SpinBox {
-                value: fastforward-speed;
-
-                edited(val) => {
-                    fastforward-speed = val
                 }
             }
         }
 
-        HorizontalLayout {
-            alignment: start;
-            spacing: 8px;
+        GridLayout {
+            padding-top: 8px;
+            spacing: 16px;
 
-            Text {
-                vertical-alignment: center;
-                text: "Run as merged file (can be faster but more prone to breaking)";
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Fastforward Speed";
+                }
+
+                VerticalLayout {
+                    height: sb.preferred-height;
+                    sb := SpinBox {
+                        value: fastforward-speed;
+
+                        edited(val) => {
+                            fastforward-speed = val
+                        }
+                    }
+                }
             }
 
-            CheckBox {
-                checked: run-as-merged;
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Run as merged file.\nUseful for many small files, like lobby connections";
+                }
 
-                toggled => {
-                    run-as-merged = self.checked
+                CheckBox {
+                    checked: run-as-merged;
+
+                    toggled => {
+                        run-as-merged = self.checked
+                    }
                 }
             }
         }
