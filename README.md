@@ -32,6 +32,10 @@ Path recorder and renderer for Celeste TASes.
 
 ![mausoleum TAS contest path](docs/paths/mausoleum.png)
 
+## Keyboard Shortcuts
+- `Ctrl-O` Record TASes
+- `Ctrl-Enter` Render
+
 ## FAQ
 
 **Q**: An entity is missing from the map png
