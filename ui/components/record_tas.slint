@@ -7,7 +7,7 @@ export struct RecordPath {
 
 export global RecordTAS {
     callback pick-tas-files();
-    callback record-tases([RecordPath], float, bool, bool);
+    callback record-tases([RecordPath], float, bool, bool, bool);
     callback abort-tas;
 
     in-out property <bool> celeste-started: true;
@@ -33,8 +33,9 @@ export component TasRecording inherits VerticalBox {
     property <float> fastforward-speed: 500.0;
     property <bool> record-git-tree: false;
     property <bool> run-as-merged: false;
+    property <bool> enable-tas-recorder: false;
 
-    callback record-tases([RecordPath], float, bool, bool);
+    callback record-tases([RecordPath], float, bool, bool, bool);
     callback ok;
     callback abort;
 
@@ -147,6 +148,22 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
+                    text: "Enable TASRecorder";
+                }
+
+                CheckBox {
+                    height: sb.height;
+                    checked: enable-tas-recorder;
+
+                    toggled => {
+                        enable-tas-recorder = self.checked;
+                    }
+                }
+            }
+
+            Row {
+                Text {
+                    vertical-alignment: center;
                     text: "Run as merged file (useful for many small files, like lobby connections)";
                 }
 
@@ -192,7 +209,7 @@ export component TasRecording inherits VerticalBox {
         StandardButton {
             kind: StandardButtonKind.ok;
             clicked => {
-                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree);
+                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree, enable-tas-recorder);
             }
         }
     }
@@ -233,7 +250,7 @@ export component TasRecording inherits VerticalBox {
         StandardButton {
             kind: StandardButtonKind.retry;
             clicked => {
-                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree);
+                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree, enable-tas-recorder);
             }
         }
 

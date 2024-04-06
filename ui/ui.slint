@@ -105,11 +105,11 @@ export component MainWindow inherits Window {
         progress: record-progress;
         status-text: record-status-text;
 
-        record-tases(paths, fastforward-speed, run-as-merged, record-git-tree) => {
+        record-tases(paths, fastforward-speed, run-as-merged, record-git-tree, enable-tas-recorder) => {
             record-state = TasRecordingState.Running;
             record-status-text = "";
             record-progress = 0.0;
-            RecordTAS.record-tases(paths, fastforward-speed, run-as-merged, record-git-tree);
+            RecordTAS.record-tases(paths, fastforward-speed, run-as-merged, record-git-tree, enable-tas-recorder);
         }
 
         ok => {

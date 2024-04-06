@@ -78,7 +78,7 @@ pub fn setup(
     });
     record_tas_global.on_record_tases({
         let handle = main_window.clone();
-        move |files_model, speedup, run_as_merged, record_git_tree| {
+        move |files_model, speedup, run_as_merged, record_git_tree, enable_tas_recorder| {
             if let Err(e) = record_tases(
                 files_model,
                 handle.clone(),
@@ -87,6 +87,7 @@ pub fn setup(
                 speedup,
                 run_as_merged,
                 record_git_tree,
+                enable_tas_recorder,
             ) {
                 handle.unwrap().set_error(format!("{e}").into());
             }
@@ -102,6 +103,7 @@ fn record_tases(
     speedup: f32,
     run_as_merged: bool,
     record_git_tree: bool,
+    enable_tas_recorder: bool,
 ) -> Result<()> {
     let mut files = Vec::with_capacity(files_model.row_count());
     let mut tmp_files = Vec::new();
@@ -122,10 +124,11 @@ fn record_tases(
     std::thread::spawn(move || {
         let _tmp_files = tmp_files;
 
-        let mut last_progress = 0.0;
+        let decorate = enable_tas_recorder.then_some(("StartRecording", "StopRecording"));
 
+        let mut last_progress = 0.0;
         let result = debugrc
-            .run_tases_fastforward(&files, speedup, run_as_merged, |status| {
+            .run_tases_fastforward(&files, speedup, run_as_merged, decorate, |status| {
                 let percentage_in_tas = status
                     .current_frame
                     .parse::<u32>()
