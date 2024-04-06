@@ -86,6 +86,12 @@ export component MainWindow inherits Window {
                 Recordings.select-all();
                 return EventResult.accept;
             }
+            if (event.modifiers.control && event.text == "o" && !event.repeat) {
+                error = "";
+                record-state = TasRecordingState.Prepare;
+                RecordTAS.pick-tas-files();
+                return EventResult.accept;
+            }
             if (event.modifiers.control && event.text == "\n") {
                 Render.render(Render.render-settings);
             }
