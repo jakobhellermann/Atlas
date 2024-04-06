@@ -7,16 +7,16 @@ version = "1.1.0"
 edition = "2021"
 
 [dependencies]
-celesteloader = "0.1"
-celesterender = "0.1"
-celestedebugrc = "0.1"
-annotate_celeste_map = "0.1"
+celesteloader = "0.2"
+celesterender = "0.2"
+celestedebugrc = "0.2"
+annotate_celeste_map = "0.2"
 
 slint = { version = "1.5", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-femtovg"] }
 copypasta = "0.10"
-rfd = { version = "0.14.0", default-features = false, features = ["xdg-portal", "tokio"] }
+rfd = { version = "0.14", default-features = false, features = ["xdg-portal", "tokio"] }
 tokio = { version = "1.36", features = ["rt-multi-thread"] }
-opener = "0.6.1"
+opener = "0.7"
 notify-debouncer-full = { version = "0.3", default-features = false }
 gix = { version = "0.61", default-features = false }
 anyhow = "1.0"
@@ -42,7 +42,7 @@ identifier = "io.github.jakobhellermann.atlas"
 icon = ["ui/assets/icon/icon.png"]
 
 [patch.crates-io]
-celesteloader = { path = "../celestetools/crates/celesteloader" }
-celesterender = { path = "../celestetools/crates/celesterender" }
-celestedebugrc = { path = "../celestetools/crates/celestedebugrc" }
-annotate_celeste_map = { path = "../celestetools/crates/annotate_celeste_map" }
+# celesteloader = { path = "../celestetools/crates/celesteloader" }
+# celesterender = { path = "../celestetools/crates/celesterender" }
+# celestedebugrc = { path = "../celestetools/crates/celestedebugrc" }
+# annotate_celeste_map = { path = "../celestetools/crates/annotate_celeste_map" }
