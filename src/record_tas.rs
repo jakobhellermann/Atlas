@@ -112,7 +112,7 @@ fn record_tases(
         if record_git_tree {
             if let Ok(Some((_, data))) = is_git_changed(&path) {
                 let tmp = tempfile::Builder::new().suffix(".tas").tempfile()?;
-                BufWriter::new(tmp.as_file()).write_all(&data)?;
+                BufWriter::new(tmp.as_file()).write_all(data.as_bytes())?;
                 files.push(tmp.path().to_owned());
                 tmp_files.push(tmp);
             }
@@ -201,7 +201,7 @@ fn record_tases(
     Ok(())
 }
 
-fn is_git_changed(path: &Path) -> Result<Option<(String, Vec<u8>)>> {
+fn is_git_changed(path: &Path) -> Result<Option<(String, String)>> {
     let Some(parent) = path.parent() else {
         return Ok(None);
     };
@@ -222,8 +222,9 @@ fn is_git_changed(path: &Path) -> Result<Option<(String, Vec<u8>)>> {
         .context("path not in repo?")?
         .object()?;
 
-    let data_new = std::fs::read(path)?;
-    let changed = object.data != data_new;
+    let data_new = std::fs::read_to_string(path)?;
+    let data_old = std::str::from_utf8(&object.data)?;
+    let changed = data_old != data_new.replace("\r\n", "\n");
 
     let commit_id = head.short_id()?.to_string();
     Ok(changed.then_some((commit_id, data_new)))
