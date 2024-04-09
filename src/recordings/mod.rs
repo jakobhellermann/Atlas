@@ -224,10 +224,13 @@ pub fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<MapRe
         .collect())
 }
 
+#[allow(unused)]
 fn recalc_compare_recordings_enabled(
     handle: Weak<MainWindow>,
     recordings: &VecModel<MapRecordings>,
 ) {
+    return; // disable for now, doesn't work reliably yet
+
     let main_window = handle.unwrap();
 
     let mut all_exactly_two = true;
