@@ -124,11 +124,17 @@ fn record_tases(
     std::thread::spawn(move || {
         let _tmp_files = tmp_files;
 
-        let decorate = enable_tas_recorder.then_some(("StartRecording", "StopRecording"));
+        let decorate = match enable_tas_recorder {
+            true => (
+                "Set,ConsistencyTracker.LogPhysicsEnabled,true\nStartRecording",
+                "StopRecording",
+            ),
+            false => ("Set,ConsistencyTracker.LogPhysicsEnabled,true", ""),
+        };
 
         let mut last_progress = 0.0;
         let result = debugrc
-            .run_tases_fastforward(&files, speedup, run_as_merged, decorate, |status| {
+            .run_tases_fastforward(&files, speedup, run_as_merged, Some(decorate), |status| {
                 let percentage_in_tas = status
                     .current_frame
                     .parse::<u32>()
