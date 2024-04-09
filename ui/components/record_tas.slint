@@ -5,9 +5,17 @@ export struct RecordPath {
     git-commit: string, // empty if not in git or not changed
 }
 
+export struct RecordTasSettings {
+    fastforward-speed: float,
+    run-as-merged: bool,
+    record-git-tree: bool,
+    only-record-changes: bool,
+    enable-tas-recorder: bool,
+}
+
 export global RecordTAS {
     callback pick-tas-files();
-    callback record-tases([RecordPath], float, bool, bool, bool);
+    callback record-tases([RecordPath], RecordTasSettings);
     callback abort-tas;
 
     in-out property <bool> celeste-started: true;
@@ -31,11 +39,15 @@ export component TasRecording inherits VerticalBox {
     in property <TasRecordingState> state;
 
     property <float> fastforward-speed: 500.0;
-    property <bool> record-git-tree: false;
-    property <bool> run-as-merged: false;
-    property <bool> enable-tas-recorder: false;
+    property <RecordTasSettings> record-tas-settings: {
+        fastforward-speed: 500.0,
+        run-as-merged: false,
+        record-git-tree: false,
+        only-record-changes: false,
+        enable-tas-recorder: false,
+    };
 
-    callback record-tases([RecordPath], float, bool, bool, bool);
+    callback record-tases([RecordPath], RecordTasSettings);
     callback ok;
     callback abort;
 
@@ -98,7 +110,7 @@ export component TasRecording inherits VerticalBox {
                                 alignment: space-between;
                                 Text {
                                     font-family: "monospace";
-                                    color: record-git-tree ? white : #ccc;
+                                    color: record-tas-settings.record-git-tree ? white : #ccc;
                                     text: path.path + " (" + path.git-commit + ")";
                                 }
                             }
@@ -132,15 +144,31 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Also record original file before change";
+                    text: "Only record changed rooms";
                 }
 
                 CheckBox {
                     height: sb.height;
-                    checked: record-git-tree;
+                    checked: record-tas-settings.only-record-changes;
 
                     toggled => {
-                        record-git-tree = self.checked;
+                        record-tas-settings.only-record-changes = self.checked;
+                    }
+                }
+            }
+
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Also record original file";
+                }
+
+                CheckBox {
+                    height: sb.height;
+                    checked: record-tas-settings.record-git-tree;
+
+                    toggled => {
+                        record-tas-settings.record-git-tree = self.checked;
                     }
                 }
             }
@@ -153,10 +181,10 @@ export component TasRecording inherits VerticalBox {
 
                 CheckBox {
                     height: sb.height;
-                    checked: enable-tas-recorder;
+                    checked: record-tas-settings.enable-tas-recorder;
 
                     toggled => {
-                        enable-tas-recorder = self.checked;
+                        record-tas-settings.enable-tas-recorder = self.checked;
                     }
                 }
             }
@@ -169,10 +197,10 @@ export component TasRecording inherits VerticalBox {
 
                 CheckBox {
                     height: sb.height;
-                    checked: run-as-merged;
+                    checked: record-tas-settings.run-as-merged;
 
                     toggled => {
-                        run-as-merged = self.checked
+                        record-tas-settings.run-as-merged = self.checked
                     }
                 }
             }
@@ -209,7 +237,7 @@ export component TasRecording inherits VerticalBox {
         StandardButton {
             kind: StandardButtonKind.ok;
             clicked => {
-                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree, enable-tas-recorder);
+                record-tases(paths, record-tas-settings);
             }
         }
     }
@@ -250,7 +278,7 @@ export component TasRecording inherits VerticalBox {
         StandardButton {
             kind: StandardButtonKind.retry;
             clicked => {
-                record-tases(paths, fastforward-speed, run-as-merged, record-git-tree, enable-tas-recorder);
+                record-tases(paths, record-tas-settings);
             }
         }
 

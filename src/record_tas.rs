@@ -1,4 +1,3 @@
-use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -7,7 +6,7 @@ use celestedebugrc::DebugRC;
 use celesteloader::cct_physics_inspector::PhysicsInspector;
 use slint::{ComponentHandle, Model, ModelRc, VecModel, Weak};
 
-use crate::{recordings, MainWindow, RecordPath, RecordTAS};
+use crate::{recordings, MainWindow, RecordPath, RecordTAS, RecordTasSettings};
 
 pub fn setup(
     record_tas_global: RecordTAS<'_>,
@@ -39,19 +38,17 @@ pub fn setup(
                     .into_iter()
                     .map(|file| {
                         let path = file.path();
-                        let changed = match is_git_changed(&path) {
-                            Ok(rev) => rev,
+                        let git_commit = match is_git_changed(&path) {
+                            Ok(Some((commit, _))) => commit,
+                            Ok(None) => String::new(),
                             Err(e) => {
-                                dbg!(&e);
-                                None
+                                eprintln!("{}", e);
+                                String::new()
                             }
                         };
                         RecordPath {
                             path: file.path().to_str().unwrap().into(),
-                            git_commit: changed
-                                .map(|(commit, _)| commit)
-                                .unwrap_or_default()
-                                .into(),
+                            git_commit: git_commit.into(),
                         }
                     })
                     .collect::<Vec<_>>();
@@ -78,16 +75,13 @@ pub fn setup(
     });
     record_tas_global.on_record_tases({
         let handle = main_window.clone();
-        move |files_model, speedup, run_as_merged, record_git_tree, enable_tas_recorder| {
+        move |files_model, settings| {
             if let Err(e) = record_tases(
                 files_model,
                 handle.clone(),
                 physics_inspector.clone(),
                 debugrc.clone(),
-                speedup,
-                run_as_merged,
-                record_git_tree,
-                enable_tas_recorder,
+                settings,
             ) {
                 handle.unwrap().set_error(format!("{e}").into());
             }
@@ -100,31 +94,41 @@ fn record_tases(
     handle: Weak<MainWindow>,
     physics_inspector: PhysicsInspector,
     debugrc: DebugRC,
-    speedup: f32,
-    run_as_merged: bool,
-    record_git_tree: bool,
-    enable_tas_recorder: bool,
+    settings: RecordTasSettings,
 ) -> Result<()> {
     let mut files = Vec::with_capacity(files_model.row_count());
     let mut tmp_files = Vec::new();
+
     for file in files_model.iter() {
         let path = PathBuf::from(file.path.to_string());
-        if record_git_tree {
-            if let Ok(Some((_, data))) = is_git_changed(&path) {
-                let tmp = tempfile::Builder::new().suffix(".tas").tempfile()?;
-                BufWriter::new(tmp.as_file()).write_all(data.as_bytes())?;
-                files.push(tmp.path().to_owned());
-                tmp_files.push(tmp);
-            }
-        }
 
-        files.push(path);
+        if settings.only_record_changes {
+            let old_new = with_old_new(&path, |_, old, new| (old.to_owned(), new))?;
+            match old_new {
+                Some((old, new)) => {
+                    let only_diff = physics_log_in_diff(&old, &new);
+                    files.push(write_to_temp(&only_diff, &mut tmp_files)?);
+
+                    if settings.record_git_tree {
+                        let only_diff = physics_log_in_diff(&new, &old);
+                        files.push(write_to_temp(&only_diff, &mut tmp_files)?);
+                    }
+                }
+                None => files.push(path),
+            }
+        } else {
+            if settings.record_git_tree {
+                if let Ok(Some((_, old_data))) = is_git_changed(&path) {
+                    files.push(write_to_temp(&old_data, &mut tmp_files)?);
+                }
+            }
+
+            files.push(path);
+        }
     }
 
     std::thread::spawn(move || {
-        let _tmp_files = tmp_files;
-
-        let decorate = match enable_tas_recorder {
+        let decorate = match settings.enable_tas_recorder {
             true => (
                 "Set,ConsistencyTracker.LogPhysicsEnabled,true\nStartRecording",
                 "StopRecording",
@@ -134,50 +138,60 @@ fn record_tases(
 
         let mut last_progress = 0.0;
         let result = debugrc
-            .run_tases_fastforward(&files, speedup, run_as_merged, Some(decorate), |status| {
-                let percentage_in_tas = status
-                    .current_frame
-                    .parse::<u32>()
-                    .ok()
-                    .and_then(|current| {
-                        let total = status.total_frames.parse::<u32>().ok()?;
-                        Some((current, total))
-                    })
-                    .map(|(current, total)| current as f32 / total as f32)
-                    .unwrap_or(1.0);
+            .run_tases_fastforward(
+                &files,
+                settings.fastforward_speed,
+                settings.run_as_merged,
+                Some(decorate),
+                |status| {
+                    let percentage_in_tas = status
+                        .current_frame
+                        .parse::<u32>()
+                        .ok()
+                        .and_then(|current| {
+                            let total = status.total_frames.parse::<u32>().ok()?;
+                            Some((current, total))
+                        })
+                        .map(|(current, total)| current as f32 / total as f32)
+                        .unwrap_or(1.0);
 
-                let (msg, new_progress) = if let Some(origin) = status.origin {
-                    let msg = format!(
-                        "{}/{} {origin}: {}/{}",
-                        status.current_file,
-                        status.total_files,
-                        status.current_frame,
-                        status.total_frames
-                    );
-                    let percentage = (status.current_file as f32 + percentage_in_tas)
-                        / status.total_files as f32;
-                    (msg, percentage)
-                } else {
-                    let msg = format!("{}/{}", status.current_frame, status.total_frames);
-                    (msg, percentage_in_tas)
-                };
+                    let (msg, new_progress) = if let Some(origin) = status.origin {
+                        let msg = format!(
+                            "{}/{} {origin}: {}/{}",
+                            status.current_file,
+                            status.total_files,
+                            status.current_frame,
+                            status.total_frames
+                        );
+                        let percentage = (status.current_file as f32 + percentage_in_tas)
+                            / status.total_files as f32;
+                        (msg, percentage)
+                    } else {
+                        let msg = format!("{}/{}", status.current_frame, status.total_frames);
+                        (msg, percentage_in_tas)
+                    };
 
-                handle
-                    .upgrade_in_event_loop(move |handle| {
-                        if new_progress > last_progress {
-                            handle.set_record_progress(new_progress);
-                        }
-                        handle.set_record_status_text(msg.into());
-                    })
-                    .unwrap();
+                    handle
+                        .upgrade_in_event_loop(move |handle| {
+                            if new_progress > last_progress {
+                                handle.set_record_progress(new_progress);
+                            }
+                            handle.set_record_status_text(msg.into());
+                        })
+                        .unwrap();
 
-                last_progress = new_progress;
-            })
+                    last_progress = new_progress;
+                },
+            )
             .map(|_| {
                 if let Err(e) = debugrc.get("cct/segmentRecording") {
                     eprintln!("Failed to segment recording: {e}");
                 }
             });
+
+        for file in tmp_files {
+            let _ = std::fs::remove_file(&file);
+        }
 
         handle
             .upgrade_in_event_loop(move |handle| {
@@ -201,7 +215,24 @@ fn record_tases(
     Ok(())
 }
 
-fn is_git_changed(path: &Path) -> Result<Option<(String, String)>> {
+fn write_to_temp(data: &str, tmp_files: &mut Vec<PathBuf>) -> Result<PathBuf, anyhow::Error> {
+    let name: String = "tmp_"
+        .chars()
+        .chain(std::iter::repeat_with(fastrand::alphabetic).take(12))
+        .chain(".tas".chars())
+        .collect::<String>();
+    let file = std::env::temp_dir().join(&name);
+
+    std::fs::write(&file, data)?;
+    tmp_files.push(file.clone());
+
+    Ok(file)
+}
+
+fn with_old_new<T>(
+    path: &Path,
+    f: impl Fn(gix::Commit<'_>, &str, String) -> T,
+) -> Result<Option<T>> {
     let Some(parent) = path.parent() else {
         return Ok(None);
     };
@@ -224,8 +255,125 @@ fn is_git_changed(path: &Path) -> Result<Option<(String, String)>> {
 
     let data_new = std::fs::read_to_string(path)?;
     let data_old = std::str::from_utf8(&object.data)?;
-    let changed = data_old != data_new.replace("\r\n", "\n");
 
-    let commit_id = head.short_id()?.to_string();
-    Ok(changed.then_some((commit_id, data_new)))
+    Ok(Some(f(head, data_old, data_new)))
+}
+
+/// returns (CommitPrefix, OldData)
+fn is_git_changed(path: &Path) -> Result<Option<(String, String)>> {
+    with_old_new(path, |commit, old, new| {
+        let changed = old != new.replace("\r\n", "\n");
+        let commit_id = commit
+            .short_id()
+            .map_or_else(|_| format!("{commit:?}"), |prefix| prefix.to_string());
+
+        changed.then_some((commit_id, old.to_owned()))
+    })
+    .map(Option::flatten)
+}
+
+fn physics_log_in_diff(old: &str, new: &str) -> String {
+    let mut first_line_changed = None;
+    let mut first_line_changed_rev = None;
+    let new_line_count = new.lines().count();
+
+    let care_about_line = |line: &str| {
+        let line = line.trim_start();
+        !line.starts_with('#') && !line.starts_with("FileTime") && !line.starts_with("ChapterTime")
+    };
+
+    for (i, (old, new)) in old.lines().zip(new.lines()).enumerate() {
+        if first_line_changed.is_none() && old != new {
+            if !care_about_line(old) && !care_about_line(new) {
+                continue;
+            }
+            first_line_changed = Some(i);
+        }
+    }
+
+    for (i, (old, new)) in old.lines().rev().zip(new.lines().rev()).enumerate() {
+        if first_line_changed_rev.is_none() && old != new {
+            if !care_about_line(old) && !care_about_line(new) {
+                continue;
+            }
+            first_line_changed_rev = Some(i);
+        }
+    }
+
+    let (Some(first_line_changed), Some(first_line_changed_rev)) =
+        (first_line_changed, first_line_changed_rev)
+    else {
+        return new.into();
+    };
+
+    let disable = "Set,ConsistencyTracker.LogPhysicsEnabled,false\n";
+    let enable = "Set,ConsistencyTracker.LogPhysicsEnabled,true\n";
+
+    let mut out = String::with_capacity(new.len() + disable.len() * 3);
+    out.push_str(disable);
+
+    for (i, line) in new.lines().enumerate() {
+        if i == first_line_changed {
+            out.push_str(enable);
+        }
+        out.push_str(line);
+        out.push('\n');
+        if i == new_line_count - 1 - first_line_changed_rev {
+            out.push_str(disable);
+        }
+    }
+
+    out
+}
+
+#[test]
+fn hi() {
+    let result = physics_log_in_diff(
+        "# Start
+190
+1,J
+# lvl_1
+2,J
+# lvl_2
+3,J
+15,U,R,X
+10,L
+# lvl_end
+4,J
+ChapterTime:
+",
+        "# Start
+190
+1,J
+# lvl_1
+2,J
+# lvl_2
+10,U,R,X
+2,R,K,G
+10,L
+# lvl_end
+4,J
+ChapterTime:
+",
+    );
+    println!("{}", result);
+    assert_eq!(
+        result,
+        "Set,ConsistencyTracker.LogPhysicsEnabled,false
+# Start
+190
+1,J
+# lvl_1
+2,J
+# lvl_2
+Set,ConsistencyTracker.LogPhysicsEnabled,true
+10,U,R,X
+2,R,K,G
+Set,ConsistencyTracker.LogPhysicsEnabled,false
+10,L
+# lvl_end
+4,J
+ChapterTime:
+"
+    )
 }
