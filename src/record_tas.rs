@@ -99,50 +99,67 @@ fn record_tases(
     let mut files = Vec::with_capacity(files_model.row_count());
     let mut tmp_files = Vec::new();
 
+    let enable_base = "Set,ConsistencyTracker.LogPhysicsEnabled,true";
+    let disable_base = "Set,ConsistencyTracker.LogPhysicsEnabled,false";
+
+    let mut decorate_begin = enable_base.to_owned();
+    let mut decorate_end = disable_base.to_owned();
+    if settings.enable_tas_recorder {
+        decorate_begin.push('\n');
+        decorate_begin.push_str("StartRecording");
+        decorate_end.push('\n');
+        decorate_end.push_str("StopRecording");
+    }
+    if settings.record_git_tree {
+        decorate_begin.push('\n');
+        decorate_begin.push_str("StartGhostReplay");
+    }
+    let decorate = (decorate_begin, decorate_end);
+
+    let decorate_ghostrecord = (
+        format!("{disable_base}\nStartGhostRecording"),
+        format!("StopGhostRecording"),
+    );
+
     for file in files_model.iter() {
         let path = PathBuf::from(file.path.to_string());
+
+        let parent = path.parent().unwrap_or(Path::new("/"));
 
         if settings.only_record_changes {
             let old_new = with_old_new(&path, |_, old, new| (old.to_owned(), new))?;
             match old_new {
                 Some((old, new)) => {
-                    let only_diff = physics_log_in_diff(&old, &new);
-                    files.push(write_to_temp(&only_diff, &mut tmp_files)?);
-
                     if settings.record_git_tree {
-                        let only_diff = physics_log_in_diff(&new, &old);
-                        files.push(write_to_temp(&only_diff, &mut tmp_files)?);
+                        let tmpfile = write_to_temp_in(&old, parent, &mut tmp_files)?;
+                        files.push((tmpfile, decorate_ghostrecord.clone()));
                     }
+
+                    let only_diff = physics_log_in_diff(&old, &new, decorate.clone());
+                    let tmpfile = write_to_temp_in(&only_diff, parent, &mut tmp_files)?;
+                    files.push((tmpfile, decorate.clone()));
                 }
-                None => files.push(path),
+                None => files.push((path, decorate.clone())),
             }
         } else {
             if settings.record_git_tree {
                 if let Ok(Some((_, old_data))) = is_git_changed(&path) {
-                    files.push(write_to_temp(&old_data, &mut tmp_files)?);
+                    let tmpfile = write_to_temp_in(&old_data, parent, &mut tmp_files)?;
+                    files.push((tmpfile, decorate_ghostrecord.clone()));
                 }
             }
 
-            files.push(path);
+            files.push((path, decorate.clone()));
         }
     }
 
     std::thread::spawn(move || {
-        let decorate = match settings.enable_tas_recorder {
-            true => (
-                "Set,ConsistencyTracker.LogPhysicsEnabled,true\nStartRecording",
-                "StopRecording",
-            ),
-            false => ("Set,ConsistencyTracker.LogPhysicsEnabled,true", ""),
-        };
-
         let mut last_progress = 0.0;
         let result = debugrc
             .run_tases_fastforward(
                 &files,
                 settings.fastforward_speed,
                 settings.run_as_merged,
-                Some(decorate),
                 |status| {
                     let percentage_in_tas = status
                         .current_frame
@@ -184,9 +201,9 @@ fn record_tases(
                 },
             )
             .map(|_| {
-                if let Err(e) = debugrc.get("cct/segmentRecording") {
-                    eprintln!("Failed to segment recording: {e}");
-                }
+                // if let Err(e) = debugrc.get("cct/segmentRecording") {
+                // eprintln!("Failed to segment recording: {e}");
+                // }
             });
 
         for file in tmp_files {
@@ -215,13 +232,17 @@ fn record_tases(
     Ok(())
 }
 
-fn write_to_temp(data: &str, tmp_files: &mut Vec<PathBuf>) -> Result<PathBuf, anyhow::Error> {
+fn write_to_temp_in(
+    data: &str,
+    tmp_dir: &Path,
+    tmp_files: &mut Vec<PathBuf>,
+) -> Result<PathBuf, anyhow::Error> {
     let name: String = "tmp_"
         .chars()
         .chain(std::iter::repeat_with(fastrand::alphabetic).take(12))
         .chain(".tas".chars())
         .collect::<String>();
-    let file = std::env::temp_dir().join(&name);
+    let file = tmp_dir.join(&name);
 
     std::fs::write(&file, data)?;
     tmp_files.push(file.clone());
@@ -272,14 +293,17 @@ fn is_git_changed(path: &Path) -> Result<Option<(String, String)>> {
     .map(Option::flatten)
 }
 
-fn physics_log_in_diff(old: &str, new: &str) -> String {
+fn physics_log_in_diff(old: &str, new: &str, decorate: (String, String)) -> String {
     let mut first_line_changed = None;
     let mut first_line_changed_rev = None;
     let new_line_count = new.lines().count();
 
     let care_about_line = |line: &str| {
         let line = line.trim_start();
-        !line.starts_with('#') && !line.starts_with("FileTime") && !line.starts_with("ChapterTime")
+        !line.starts_with('#')
+            && !line.starts_with("FileTime")
+            && !line.starts_with("ChapterTime")
+            && !line.starts_with("RecordCount")
     };
 
     for (i, (old, new)) in old.lines().zip(new.lines()).enumerate() {
@@ -306,20 +330,22 @@ fn physics_log_in_diff(old: &str, new: &str) -> String {
         return new.into();
     };
 
-    let disable = "Set,ConsistencyTracker.LogPhysicsEnabled,false\n";
-    let enable = "Set,ConsistencyTracker.LogPhysicsEnabled,true\n";
+    let (enable, disable) = decorate;
 
     let mut out = String::with_capacity(new.len() + disable.len() * 3);
-    out.push_str(disable);
+    out.push_str(&disable);
+    out.push('\n');
 
     for (i, line) in new.lines().enumerate() {
         if i == first_line_changed {
-            out.push_str(enable);
+            out.push_str(&enable);
+            out.push('\n');
         }
         out.push_str(line);
         out.push('\n');
         if i == new_line_count - 1 - first_line_changed_rev {
-            out.push_str(disable);
+            out.push_str(&disable);
+            out.push('\n');
         }
     }
 
@@ -328,6 +354,9 @@ fn physics_log_in_diff(old: &str, new: &str) -> String {
 
 #[test]
 fn hi() {
+    let enable = "Set,ConsistencyTracker.LogPhysicsEnabled,true";
+    let disable = "Set,ConsistencyTracker.LogPhysicsEnabled,false";
+
     let result = physics_log_in_diff(
         "# Start
 190
@@ -355,6 +384,7 @@ ChapterTime:
 4,J
 ChapterTime:
 ",
+        (enable.into(), disable.into()),
     );
     println!("{}", result);
     assert_eq!(

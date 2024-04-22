@@ -160,7 +160,23 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Also record original file";
+                    text: "Enable TASRecorder";
+                }
+
+                cb-enable-tas-record := CheckBox {
+                    height: sb.height;
+                    checked: record-tas-settings.enable-tas-recorder;
+
+                    toggled => {
+                        record-tas-settings.enable-tas-recorder = self.checked;
+                    }
+                }
+            }
+
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Record original as Ghost";
                 }
 
                 CheckBox {
@@ -169,22 +185,8 @@ export component TasRecording inherits VerticalBox {
 
                     toggled => {
                         record-tas-settings.record-git-tree = self.checked;
-                    }
-                }
-            }
-
-            Row {
-                Text {
-                    vertical-alignment: center;
-                    text: "Enable TASRecorder";
-                }
-
-                CheckBox {
-                    height: sb.height;
-                    checked: record-tas-settings.enable-tas-recorder;
-
-                    toggled => {
-                        record-tas-settings.enable-tas-recorder = self.checked;
+                        cb-enable-tas-record.checked = true;
+                        cb-enable-tas-record.toggled();
                     }
                 }
             }
