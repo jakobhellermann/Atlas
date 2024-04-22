@@ -158,7 +158,7 @@ fn record_tases(
                     let (msg, new_progress) = if let Some(origin) = status.origin {
                         let msg = format!(
                             "{}/{} {origin}: {}/{}",
-                            status.current_file,
+                            status.current_file + 1,
                             status.total_files,
                             status.current_frame,
                             status.total_frames
