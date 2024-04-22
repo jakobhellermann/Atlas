@@ -48,7 +48,7 @@ export component MainWindow inherits Window {
     in-out property <string> error: "";
 
     // actions
-    callback pick-tas-files-done([RecordPath]);
+    callback pick-tas-files-done([RecordPath], bool);
 
     // entrypoints
     callback record-update(float, string, bool);
@@ -60,13 +60,15 @@ export component MainWindow inherits Window {
     private property <[RecordPath]> record-paths;
     in-out property <float> record-progress;
     in-out property <string> record-status-text;
+    private property <bool> record-any-file-changed;
 
     // render
     record-done(success) => {
         record-state = success ? TasRecordingState.DoneSuccess : TasRecordingState.DoneError;
     }
-    pick-tas-files-done(paths) => {
+    pick-tas-files-done(paths, any-changed) => {
         record-paths = paths;
+        record-any-file-changed = any-changed;
         if record-paths.length > 0 {
             nav = ActiveWindow.Record;
         }
@@ -104,6 +106,7 @@ export component MainWindow inherits Window {
         paths: record-paths;
         progress: record-progress;
         status-text: record-status-text;
+        any-file-changed: record-any-file-changed;
 
         record-tases(paths, settings) => {
             record-state = TasRecordingState.Running;

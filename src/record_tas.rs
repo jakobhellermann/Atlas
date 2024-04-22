@@ -54,7 +54,11 @@ pub fn setup(
                     .collect::<Vec<_>>();
                 handle
                     .upgrade_in_event_loop(|handle| {
-                        handle.invoke_pick_tas_files_done(Rc::new(VecModel::from(files)).into());
+                        let any_changed = files.iter().any(|file| !file.git_commit.is_empty());
+                        handle.invoke_pick_tas_files_done(
+                            Rc::new(VecModel::from(files)).into(),
+                            any_changed,
+                        );
                     })
                     .unwrap();
             });

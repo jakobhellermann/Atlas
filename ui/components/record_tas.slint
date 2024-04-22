@@ -37,6 +37,7 @@ export component TasRecording inherits VerticalBox {
     in property <float> progress <=> progress.progress;
     in property <string> status-text <=> status.text;
     in property <TasRecordingState> state;
+    in property <bool> any-file-changed;
 
     property <float> fastforward-speed: 500.0;
     property <RecordTasSettings> record-tas-settings: {
@@ -144,22 +145,6 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Only record changed rooms";
-                }
-
-                CheckBox {
-                    height: sb.height;
-                    checked: record-tas-settings.only-record-changes;
-
-                    toggled => {
-                        record-tas-settings.only-record-changes = self.checked;
-                    }
-                }
-            }
-
-            Row {
-                Text {
-                    vertical-alignment: center;
                     text: "Enable TASRecorder";
                 }
 
@@ -176,17 +161,37 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Record original as Ghost";
+                    text: "Record original as ghost";
+                    color: record-tas-settings.record-git-tree ? white : #ccc;
                 }
 
                 CheckBox {
                     height: sb.height;
                     checked: record-tas-settings.record-git-tree;
+                    enabled: any-file-changed;
 
                     toggled => {
                         record-tas-settings.record-git-tree = self.checked;
                         cb-enable-tas-record.checked = true;
                         cb-enable-tas-record.toggled();
+                    }
+                }
+            }
+
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Only record changed rooms";
+                    color: record-tas-settings.record-git-tree ? white : #ccc;
+                }
+
+                CheckBox {
+                    height: sb.height;
+                    checked: record-tas-settings.only-record-changes;
+                    enabled: any-file-changed;
+
+                    toggled => {
+                        record-tas-settings.only-record-changes = self.checked;
                     }
                 }
             }
