@@ -62,12 +62,13 @@ pub fn main() {
         main_window.global::<Render>(),
         main_window.as_weak(),
         &filter_model,
-        celeste,
+        celeste.clone(),
     );
 
     record_tas::setup(
         main_window.global::<RecordTAS>(),
         main_window.as_weak(),
+        celeste,
         physics_inspector,
     );
 

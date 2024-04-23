@@ -4,6 +4,7 @@ use std::rc::Rc;
 use anyhow::{Context, Result};
 use celestedebugrc::DebugRC;
 use celesteloader::cct_physics_inspector::PhysicsInspector;
+use celesteloader::CelesteInstallation;
 use slint::{ComponentHandle, Model, ModelRc, VecModel, Weak};
 
 use crate::{recordings, MainWindow, RecordPath, RecordTAS, RecordTasSettings};
@@ -11,6 +12,7 @@ use crate::{recordings, MainWindow, RecordPath, RecordTAS, RecordTasSettings};
 pub fn setup(
     record_tas_global: RecordTAS<'_>,
     main_window: Weak<MainWindow>,
+    celeste: CelesteInstallation,
     physics_inspector: PhysicsInspector,
 ) {
     let debugrc = DebugRC::new();
@@ -79,10 +81,12 @@ pub fn setup(
     });
     record_tas_global.on_record_tases({
         let handle = main_window.clone();
+        let celeste = celeste.clone();
         move |files_model, settings| {
             if let Err(e) = record_tases(
                 files_model,
                 handle.clone(),
+                celeste.clone(),
                 physics_inspector.clone(),
                 debugrc.clone(),
                 settings,
@@ -96,6 +100,7 @@ pub fn setup(
 fn record_tases(
     files_model: ModelRc<RecordPath>,
     handle: Weak<MainWindow>,
+    celeste: CelesteInstallation,
     physics_inspector: PhysicsInspector,
     debugrc: DebugRC,
     settings: RecordTasSettings,
@@ -212,6 +217,20 @@ fn record_tases(
 
         for file in tmp_files {
             let _ = std::fs::remove_file(&file);
+        }
+
+        if settings.enable_tas_recorder {
+            let settings = celeste.mod_settings("TASRecorder");
+            let output_dir = settings
+                .as_ref()
+                .ok()
+                .and_then(|settings| settings["OutputDirectory"].as_str())
+                .map(Path::new);
+
+            if let Some(out_dir) = output_dir {
+                let path = celeste.path.join(out_dir);
+                let _ = opener::open(&path);
+            }
         }
 
         handle
