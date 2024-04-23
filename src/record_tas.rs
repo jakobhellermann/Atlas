@@ -132,6 +132,7 @@ fn record_tases(
 
     for file in files_model.iter() {
         let path = PathBuf::from(file.path.to_string());
+        let name = path.file_name().unwrap().to_str().unwrap().to_owned();
 
         let parent = path.parent().unwrap_or(Path::new("/"));
 
@@ -141,24 +142,32 @@ fn record_tases(
                 Some((old, new)) => {
                     if settings.record_git_tree {
                         let tmpfile = write_to_temp_in(&old, parent, &mut tmp_files)?;
-                        files.push((tmpfile, decorate_ghostrecord.clone()));
+                        files.push((
+                            tmpfile,
+                            format!("{name} ghost"),
+                            decorate_ghostrecord.clone(),
+                        ));
                     }
 
                     let only_diff = physics_log_in_diff(&old, &new, decorate.clone());
                     let tmpfile = write_to_temp_in(&only_diff, parent, &mut tmp_files)?;
-                    files.push((tmpfile, decorate.clone()));
+                    files.push((tmpfile, name, decorate.clone()));
                 }
-                None => files.push((path, decorate.clone())),
+                None => files.push((path, name, decorate.clone())),
             }
         } else {
             if settings.record_git_tree {
                 if let Ok(Some((_, old_data))) = is_git_changed(&path) {
                     let tmpfile = write_to_temp_in(&old_data, parent, &mut tmp_files)?;
-                    files.push((tmpfile, decorate_ghostrecord.clone()));
+                    files.push((
+                        tmpfile,
+                        format!("{name} ghost"),
+                        decorate_ghostrecord.clone(),
+                    ));
                 }
             }
 
-            files.push((path, decorate.clone()));
+            files.push((path, name, decorate.clone()));
         }
     }
 
