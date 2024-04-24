@@ -172,6 +172,10 @@ pub fn read_recordings(physics_inspector: &PhysicsInspector) -> Result<Vec<MapRe
     for (i, layout) in recent_recordings {
         let old_cct = layout.map_bin.is_none();
 
+        if layout.frame_count == 1 {
+            continue;
+        }
+
         let is_vanilla = layout.sid.map_or(false, |sid| sid.starts_with("Celeste/"));
         let map_bin = layout.map_bin.unwrap_or_default();
         let map_bin = match is_vanilla && !old_cct {
