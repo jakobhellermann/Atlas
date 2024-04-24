@@ -357,7 +357,7 @@ dependencies = [
 
 [[package]]
 name = "atlas"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "annotate_celeste_map",
  "anyhow",
