@@ -1,3 +1,5 @@
+[![AUR Version](https://img.shields.io/aur/version/atlas-celeste)](https://aur.archlinux.org/packages/atlas-celeste)
+
 <p align="center">
 <img src="./ui/assets/icon/icon.png" width="256px"/>
 </p>
