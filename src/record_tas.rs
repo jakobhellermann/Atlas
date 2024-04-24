@@ -175,6 +175,11 @@ fn record_tases(
         }
     }
 
+    /*dbg!(files
+    .iter()
+    .map(|(tmp, name, ..)| (tmp, name))
+    .collect::<Vec<_>>());*/
+
     std::thread::spawn(move || {
         let mut last_progress = 0.0;
         let result = debugrc
@@ -230,6 +235,19 @@ fn record_tases(
 
         for file in tmp_files {
             let _ = std::fs::remove_file(&file);
+        }
+
+        if record_ghost {
+            let save_dir = celeste.save_dir().join("GhostsForTas");
+            if save_dir.is_dir() {
+                if let Ok(dir) = save_dir.read_dir() {
+                    for item in dir {
+                        if let Ok(item) = item {
+                            let _ = std::fs::remove_file(item.path());
+                        };
+                    }
+                }
+            }
         }
 
         if settings.enable_tas_recorder {
