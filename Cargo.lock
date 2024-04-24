@@ -105,9 +105,9 @@ dependencies = [
 
 [[package]]
 name = "annotate_celeste_map"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc6a153938ddefb523087524dd6411ae39037db95beda121ca22688382b861fe"
+checksum = "c94a217a7b324b51c54e5d18cf3e350311326ad45ec108d6023f73c1c512974d"
 dependencies = [
  "anyhow",
  "celestedebugrc",
@@ -192,6 +192,12 @@ name = "arc-swap"
 version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
+
+[[package]]
+name = "arraydeque"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d902e3d592a523def97af8f317b08ce16b7ab854c1985a0c671e6f15cebc236"
 
 [[package]]
 name = "arrayref"
@@ -605,9 +611,9 @@ dependencies = [
 
 [[package]]
 name = "celestedebugrc"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21bd987012796dd21e166c243ff5293818f2932b79d795492497b9cdb7b7a0c1"
+checksum = "fa7ad1628db8958b4961d470e6a19a05e5fd3747f5b79bc44d12c74a2be27237"
 dependencies = [
  "anyhow",
  "ureq",
@@ -615,9 +621,9 @@ dependencies = [
 
 [[package]]
 name = "celesteloader"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8be5befbcef6254c556a1eab2d229e9e39011da94e64967864f0969e9ce223ef"
+checksum = "76e2c23506089ca41941dc2a71e6e9b80da74b52cd0eb47bb8ebf72552e0e763"
 dependencies = [
  "anyhow",
  "csv",
@@ -629,14 +635,15 @@ dependencies = [
  "serde_json",
  "unicase",
  "winreg",
+ "yaml-rust2",
  "zip",
 ]
 
 [[package]]
 name = "celesterender"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0d732ce2ed52c19b1773f1d1c02e93a43b5c6fcdb934bf1a854556963779190"
+checksum = "1c6d09901881a099066886842a58e9f50dfe11a1bead19b72ef83a5df7d0bd4f"
 dependencies = [
  "anyhow",
  "celesteloader",
@@ -1268,6 +1275,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d98e71ae4df57d214182a2e5cb90230c0192c6ddfcaa05c36453d46a54713e10"
 dependencies = [
  "stable_deref_trait",
+]
+
+[[package]]
+name = "encoding_rs"
+version = "0.8.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b45de904aa0b010bce2ab45264d0631681847fa7b6f2eaa7dab7619943bc4f59"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -2303,6 +2319,15 @@ checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 dependencies = [
  "ahash",
  "allocator-api2",
+]
+
+[[package]]
+name = "hashlink"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8094feaf31ff591f651a2664fb9cfd92bba7a60ce3197265e9482ebe753c8f7"
+dependencies = [
+ "hashbrown",
 ]
 
 [[package]]
@@ -5750,6 +5775,17 @@ name = "xmlwriter"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
+
+[[package]]
+name = "yaml-rust2"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "498f4d102a79ea1c9d4dd27573c0fc96ad74c023e8da38484e47883076da25fb"
+dependencies = [
+ "arraydeque",
+ "encoding_rs",
+ "hashlink",
+]
 
 [[package]]
 name = "zbus"

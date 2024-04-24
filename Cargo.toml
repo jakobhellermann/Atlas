@@ -7,10 +7,10 @@ version = "1.1.0"
 edition = "2021"
 
 [dependencies]
-celesteloader = "0.2"
-celesterender = "0.2"
-celestedebugrc = "0.2"
-annotate_celeste_map = "0.2"
+celesteloader = "0.3"
+celesterender = "0.3"
+celestedebugrc = "0.3"
+annotate_celeste_map = "0.3"
 
 slint = { version = "1.5", default-features = false, features = [
     "std",
