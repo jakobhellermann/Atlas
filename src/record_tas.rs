@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -65,10 +66,34 @@ pub fn setup(
                     .unwrap();
             });
             runtime.spawn_blocking(move || {
-                let ok = debugrc.get("").is_ok();
+                let (ok, msg, tas_recorder_installed) = match debugrc.list_mods() {
+                    Ok(mods) => {
+                        let required_mods = ["CelesteTAS", "ConsistencyTracker"];
+                        let mut msg = String::new();
+                        for mod_name in required_mods {
+                            if !mods.iter().any(|m| m == mod_name) {
+                                let _ = writeln!(&mut msg, "Mod `{}` is not installed. ", mod_name);
+                            }
+                        }
+                        let tas_recorder_installed = mods.iter().any(|m| m == "TASRecorder");
+                        (
+                            true,
+                            (!msg.is_empty()).then_some(msg),
+                            tas_recorder_installed,
+                        )
+                    }
+                    Err(_) => (false, None, true),
+                };
                 handle_2
                     .upgrade_in_event_loop(move |handle| {
                         handle.global::<RecordTAS>().set_celeste_started(ok);
+                        handle
+                            .global::<RecordTAS>()
+                            .set_tasrecorder_installed(tas_recorder_installed);
+                        if let Some(msg) = msg {
+                            handle.set_error(msg.into());
+                            handle.global::<RecordTAS>().set_celeste_started(ok);
+                        }
                     })
                     .unwrap();
             });

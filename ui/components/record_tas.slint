@@ -19,6 +19,7 @@ export global RecordTAS {
     callback abort-tas;
 
     in-out property <bool> celeste-started: true;
+    in-out property <bool> tasrecorder-installed: true;
     callback start-celeste;
 }
 
@@ -187,7 +188,7 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: cb-enable-tas-record.checked ? "Also record original (with ghost)" : "Also record original";
+                    text: cb-enable-tas-record.checked ? "Also record original (with GhostModForTas)" : "Also record original";
                     color: any-file-changed ? white : #aaa;
                 }
 
@@ -213,12 +214,14 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Enable TASRecorder";
+                    text: RecordTAS.tasrecorder-installed ? "Enable TASRecorder" : "Enable TASRecorder (not installed)";
+                    color: RecordTAS.tasrecorder-installed ? white : #aaa;
                 }
 
                 cb-enable-tas-record := CheckBox {
                     height: sb.height;
                     checked: record-tas-settings.enable-tas-recorder;
+                    enabled: RecordTAS.tasrecorder-installed;
 
                     toggled => {
                         record-tas-settings.enable-tas-recorder = self.checked;
