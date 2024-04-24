@@ -111,24 +111,33 @@ fn record_tases(
     let enable_base = "Set,ConsistencyTracker.LogPhysicsEnabled,true";
     let disable_base = "Set,ConsistencyTracker.LogPhysicsEnabled,false";
 
-    let mut decorate_begin = enable_base.to_owned();
-    let mut decorate_end = disable_base.to_owned();
-    if settings.enable_tas_recorder {
-        decorate_begin.push('\n');
-        decorate_begin.push_str("StartRecording");
-        decorate_end.push('\n');
-        decorate_end.push_str("StopRecording");
-    }
-    if settings.record_git_tree {
-        decorate_begin.push('\n');
-        decorate_begin.push_str("StartGhostReplay");
-    }
-    let decorate = (decorate_begin, decorate_end);
+    let record_ghost = settings.record_git_tree && settings.enable_tas_recorder;
 
-    let decorate_ghostrecord = (
-        format!("{disable_base}\nStartGhostRecording"),
-        format!("StopGhostRecording"),
-    );
+    let decorate = {
+        let mut decorate_begin = enable_base.to_owned();
+        let mut decorate_end = disable_base.to_owned();
+        if settings.enable_tas_recorder {
+            decorate_begin.push('\n');
+            decorate_begin.push_str("StartRecording");
+            decorate_end.push('\n');
+            decorate_end.push_str("StopRecording");
+        }
+        if record_ghost {
+            decorate_begin.push('\n');
+            decorate_begin.push_str("StartGhostReplay");
+        }
+        (decorate_begin, decorate_end)
+    };
+
+    let decorate_orig = {
+        let mut decorate_orig_begin = enable_base.to_owned();
+        let mut decorate_orig_end = disable_base.to_owned();
+        if record_ghost {
+            decorate_orig_begin.push_str("\nStartGhostRecording");
+            decorate_orig_end.push_str("\nStopGhostRecording");
+        }
+        (decorate_orig_begin, decorate_orig_end)
+    };
 
     for file in files_model.iter() {
         let path = PathBuf::from(file.path.to_string());
@@ -141,12 +150,11 @@ fn record_tases(
             match old_new {
                 Some((old, new)) => {
                     if settings.record_git_tree {
-                        let tmpfile = write_to_temp_in(&old, parent, &mut tmp_files)?;
-                        files.push((
-                            tmpfile,
-                            format!("{name} ghost"),
-                            decorate_ghostrecord.clone(),
-                        ));
+                        let only_diff_reverse =
+                            physics_log_in_diff(&new, &old, decorate_orig.clone());
+                        let tmpfile = write_to_temp_in(&only_diff_reverse, parent, &mut tmp_files)?;
+
+                        files.push((tmpfile, format!("{name} original"), decorate_orig.clone()));
                     }
 
                     let only_diff = physics_log_in_diff(&old, &new, decorate.clone());
@@ -159,11 +167,7 @@ fn record_tases(
             if settings.record_git_tree {
                 if let Ok(Some((_, old_data))) = is_git_changed(&path) {
                     let tmpfile = write_to_temp_in(&old_data, parent, &mut tmp_files)?;
-                    files.push((
-                        tmpfile,
-                        format!("{name} ghost"),
-                        decorate_ghostrecord.clone(),
-                    ));
+                    files.push((tmpfile, format!("{name} original"), decorate_orig.clone()));
                 }
             }
 

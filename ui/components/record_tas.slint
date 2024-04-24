@@ -111,7 +111,7 @@ export component TasRecording inherits VerticalBox {
                                 alignment: space-between;
                                 Text {
                                     font-family: "monospace";
-                                    color: record-tas-settings.record-git-tree ? white : #ccc;
+                                    color: record-tas-settings.record-git-tree ? white : #aaa;
                                     text: path.path + " (" + path.git-commit + ")";
                                 }
                             }
@@ -142,47 +142,35 @@ export component TasRecording inherits VerticalBox {
                 }
             }
 
-            Row {
+            /*Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Enable TASRecorder";
-                }
-
-                cb-enable-tas-record := CheckBox {
-                    height: sb.height;
-                    checked: record-tas-settings.enable-tas-recorder;
-
-                    toggled => {
-                        record-tas-settings.enable-tas-recorder = self.checked;
-                    }
-                }
-            }
-
-            Row {
-                Text {
-                    vertical-alignment: center;
-                    text: "Record original as ghost";
-                    color: record-tas-settings.record-git-tree ? white : #ccc;
+                    text: "Run as merged file (useful for many small files, like lobby connections)";
                 }
 
                 CheckBox {
                     height: sb.height;
-                    checked: record-tas-settings.record-git-tree;
-                    enabled: any-file-changed;
+                    checked: record-tas-settings.run-as-merged;
 
                     toggled => {
-                        record-tas-settings.record-git-tree = self.checked;
-                        cb-enable-tas-record.checked = true;
-                        cb-enable-tas-record.toggled();
+                        record-tas-settings.run-as-merged = self.checked
                     }
+                }
+            }*/
+
+            Row {
+                Text { }
+
+                CheckBox {
+                    visible: false;
                 }
             }
 
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Only record changed rooms";
-                    color: record-tas-settings.record-git-tree ? white : #ccc;
+                    text: "Only record changes";
+                    color: any-file-changed ? white : #aaa;
                 }
 
                 CheckBox {
@@ -199,15 +187,41 @@ export component TasRecording inherits VerticalBox {
             Row {
                 Text {
                     vertical-alignment: center;
-                    text: "Run as merged file (useful for many small files, like lobby connections)";
+                    text: cb-enable-tas-record.checked ? "Also record original (with ghost)" : "Also record original";
+                    color: any-file-changed ? white : #aaa;
                 }
 
                 CheckBox {
                     height: sb.height;
-                    checked: record-tas-settings.run-as-merged;
+                    checked: record-tas-settings.record-git-tree;
+                    enabled: any-file-changed;
 
                     toggled => {
-                        record-tas-settings.run-as-merged = self.checked
+                        record-tas-settings.record-git-tree = self.checked;
+                    }
+                }
+            }
+
+            Row {
+                Text { }
+
+                CheckBox {
+                    visible: false;
+                }
+            }
+
+            Row {
+                Text {
+                    vertical-alignment: center;
+                    text: "Enable TASRecorder";
+                }
+
+                cb-enable-tas-record := CheckBox {
+                    height: sb.height;
+                    checked: record-tas-settings.enable-tas-recorder;
+
+                    toggled => {
+                        record-tas-settings.enable-tas-recorder = self.checked;
                     }
                 }
             }
