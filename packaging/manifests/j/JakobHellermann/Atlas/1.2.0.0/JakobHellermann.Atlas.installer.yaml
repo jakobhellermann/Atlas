@@ -4,10 +4,13 @@
 PackageIdentifier: JakobHellermann.Atlas
 PackageVersion: 1.2.0.0
 InstallerType: wix
-ProductCode: '{E2C60417-D4D0-4758-BCC5-C23084BDE4F8}'
+ProductCode: '{8208A3F8-4171-42AD-82B6-FA5B96E64047}'
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/jakobhellermann/Atlas/releases/download/1.2.0/Atlas.msi
-  InstallerSha256: 74A62444127AE7E7D38AB5A27D70FA987EE61378CA2E845BE7E23E22EB085F62
+  InstallerSha256: 54822F42B9D0FF6C9BC3115FE682B750A1C022061C080D4BDE6CE2A4C8FBF453
+  Dependencies:
+    PackageDependencies:
+      - PackageIdentifier: Microsoft.VCRedist.2015+.x64
 ManifestType: installer
 ManifestVersion: 1.6.0
