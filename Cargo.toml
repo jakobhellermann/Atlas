@@ -12,12 +12,6 @@ celesterender = "0.3"
 celestedebugrc = "0.3"
 annotate_celeste_map = "0.3"
 
-slint = { version = "1.5", default-features = false, features = [
-    "std",
-    "compat-1-2",
-    "backend-winit",
-    "renderer-femtovg",
-] }
 copypasta = "0.10"
 rfd = { version = "0.14", default-features = false, features = [
     "xdg-portal",
@@ -35,6 +29,21 @@ chrono = "0.4"
 once_cell = "1.19"
 tempfile = "3.10"
 fastrand = "2.0"
+
+[target.'cfg(windows)'.dependencies]
+slint = { version = "1.5", default-features = false, features = [
+    "std",
+    "compat-1-2",
+    "backend-winit",
+    "renderer-skia",
+] }
+[target.'cfg(not(windows))'.dependencies]
+slint = { version = "1.5", default-features = false, features = [
+    "std",
+    "compat-1-2",
+    "backend-winit",
+    "renderer-femtovg",
+] }
 
 [build-dependencies]
 slint-build = "1.5.0"
