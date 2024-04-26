@@ -1,3 +1,7 @@
 [submodule "packaging/arch"]
 	path = packaging/arch
+	url = https://aur.archlinux.org/atlas-celeste.git
+
+[submodule "packaging/arch-git"]
+	path = packaging/arch-git
 	url = https://aur.archlinux.org/atlas-celeste-git.git
