@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::time::Duration;
+
 use celesteloader::{cct_physics_inspector::PhysicsInspector, CelesteInstallation};
 use slint::{ComponentHandle, ModelRc};
 
@@ -55,6 +57,42 @@ pub fn main() {
                     .unwrap()
                     .set_record_status_text(format!("Could not start celeste: {e:#?}").into());
             }
+
+            let handle = handle.clone();
+            std::thread::spawn(move || {
+                let attempts_duration = 30 * 1000;
+                let attempts_interval = 500;
+                let total_attempts = attempts_duration / attempts_interval;
+
+                for i in 0..total_attempts {
+                    let (ok, msg, tas_recorder_installed) =
+                        record_tas::check_required_mods(&celestedebugrc::DebugRC::new());
+
+                    let time = i * attempts_interval;
+
+                    if !ok {
+                        std::thread::sleep(Duration::from_millis(attempts_interval));
+
+                        handle
+                            .upgrade_in_event_loop(move |handle| {
+                                handle.set_error(format!("Starting celeste... [{}ms]", time).into())
+                            })
+                            .unwrap();
+                    } else {
+                        handle
+                            .upgrade_in_event_loop(move |handle| {
+                                handle.global::<RecordTAS>().set_celeste_started(ok);
+                                handle
+                                    .global::<RecordTAS>()
+                                    .set_tasrecorder_installed(tas_recorder_installed);
+
+                                handle.set_error(msg.unwrap_or_default().into());
+                            })
+                            .unwrap();
+                        break;
+                    }
+                }
+            });
         }
     });
 

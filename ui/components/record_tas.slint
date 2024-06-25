@@ -39,6 +39,7 @@ export component TasRecording inherits VerticalBox {
     in property <string> status-text <=> status.text;
     in property <TasRecordingState> state;
     in property <bool> any-file-changed;
+    in property <string> error: "";
 
     property <float> fastforward-speed: 500.0;
     property <RecordTasSettings> record-tas-settings: {
@@ -236,12 +237,22 @@ export component TasRecording inherits VerticalBox {
         vertical-stretch: 1;
     }
 
-    if !RecordTAS.celeste-started: HorizontalBox {
-        alignment: end;
-        Button {
-            text: "Start Celeste";
-            clicked => {
-                RecordTAS.start-celeste();
+    HorizontalBox {
+        Text {
+            vertical-alignment: bottom;
+            horizontal-stretch: 1;
+            wrap: word-wrap;
+            text: root.error;
+            color: #ff3333;
+        }
+
+        if !RecordTAS.celeste-started: HorizontalBox {
+            alignment: end;
+            Button {
+                text: "Start Celeste";
+                clicked => {
+                    RecordTAS.start-celeste();
+                }
             }
         }
     }

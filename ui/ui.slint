@@ -107,6 +107,7 @@ export component MainWindow inherits Window {
         progress: record-progress;
         status-text: record-status-text;
         any-file-changed: record-any-file-changed;
+        error: error;
 
         record-tases(paths, settings) => {
             record-state = TasRecordingState.Running;
