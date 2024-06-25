@@ -60,7 +60,7 @@ pub fn main() {
 
             let handle = handle.clone();
             std::thread::spawn(move || {
-                let attempts_duration = 30 * 1000;
+                let attempts_duration = 100 * 1000;
                 let attempts_interval = 500;
                 let total_attempts = attempts_duration / attempts_interval;
 

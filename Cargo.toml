@@ -59,6 +59,10 @@ name = "Atlas"
 identifier = "io.github.jakobhellermann.atlas"
 icon = ["ui/assets/icon/icon_128.png"]
 
+[lints.clippy]
+manual_flatten = "allow"
+type_complexity = "allow"
+
 [patch.crates-io]
 # celesteloader = { path = "../celestetools/crates/celesteloader" }
 # celesterender = { path = "../celestetools/crates/celesterender" }

@@ -41,7 +41,7 @@ pub fn setup(
                     .into_iter()
                     .map(|file| {
                         let path = file.path();
-                        let git_commit = match is_git_changed(&path) {
+                        let git_commit = match is_git_changed(path) {
                             Ok(Some((commit, _))) => commit,
                             Ok(None) => String::new(),
                             Err(e) => {

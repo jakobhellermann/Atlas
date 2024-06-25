@@ -11,7 +11,6 @@ pub mod watcher;
 
 use crate::{MainWindow, MapRecordings, Recording, Recordings};
 
-#[allow(clippy::type_complexity)]
 pub fn load_model(
     main_window: &MainWindow,
     physics_inspector: &PhysicsInspector,
