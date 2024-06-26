@@ -67,7 +67,6 @@ pub fn setup(
                 return;
             }
 
-            handle.unwrap().global::<Render>().set_rendering(true);
             let celeste = celeste.clone();
             let handle = handle.clone();
             std::thread::spawn(move || {
@@ -81,6 +80,15 @@ pub fn setup(
                     },
                     layer,
                     settings.only_render_visited,
+                    |status_update| {
+                        handle
+                            .upgrade_in_event_loop(|handle| {
+                                handle
+                                    .global::<Render>()
+                                    .set_render_status(status_update.into());
+                            })
+                            .unwrap();
+                    },
                     |e| {
                         let msg = format!("{e:?}").into();
                         handle
@@ -90,7 +98,7 @@ pub fn setup(
                 );
                 handle
                     .upgrade_in_event_loop(|handle| {
-                        handle.global::<Render>().set_rendering(false);
+                        handle.global::<Render>().set_render_status("".into());
 
                         if let Err(e) = result {
                             handle.set_error(format!("{e:?}").into());
@@ -141,8 +149,11 @@ fn render_recordings(
     line_settings: LineSettings,
     layer: Layer,
     mut only_include_visited_rooms: bool,
+    on_status_update: impl Fn(String),
     on_error: impl Fn(anyhow::Error),
 ) -> Result<()> {
+    on_status_update("Rendering...".into());
+
     let mut state = RenderState::new(celeste)?;
 
     for ((map_bin, name), recordings) in map_bins.into_iter().rev() {
@@ -163,7 +174,9 @@ fn render_recordings(
                     !only_include_visited_rooms
                         || visited_rooms.contains(room.name.trim_start_matches("lvl_"))
                 },
-                status_update: &|_, _| {},
+                status_update: &|room_current, room_total| {
+                    on_status_update(format!("Rendering [{room_current}/{room_total}]"))
+                },
             };
 
             let start_render = Instant::now();
@@ -178,6 +191,7 @@ fn render_recordings(
             // let width = Some(2.0);
             // let width = width.unwrap_or_else(|| if density > 0.5 { 8.0 } else { 3.0 });
 
+            on_status_update("Annotating...".into());
             let start_annotate = Instant::now();
             annotate_celeste_map::annotate_cct_recording_skia(
                 &mut result.image,
@@ -187,6 +201,7 @@ fn render_recordings(
                 line_settings,
             )?;
 
+            on_status_update("Encoding...".into());
             let start_encode = Instant::now();
             let tmp = std::env::temp_dir().join("atlas");
             std::fs::create_dir_all(&tmp)?;

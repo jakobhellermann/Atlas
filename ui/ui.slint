@@ -209,15 +209,15 @@ export component MainWindow inherits Window {
 
                 render-button := Button {
                     height: 32px;
-                    width: 80px;
+                    // width: 80px;
 
-                    enabled: !Render.rendering;
+                    enabled: Render.render-status == "";
                     clicked => {
                         error = "";
                         Render.render(Render.render-settings);
                     }
 
-                    text: Render.rendering ? "⟳" : "Render";
+                    text: Render.render-status != "" ? Render.render-status: "Render";
                 }
             }
         }

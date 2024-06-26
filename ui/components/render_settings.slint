@@ -26,7 +26,7 @@ export global Render {
         anti-alias: true,
         layer: { fgtiles: true, bgtiles: true, entities: true, fgdecals: true, bgdecals: true },
     };
-    in property <bool> rendering: false;
+    in property <string> render-status: "";
 }
 
 export component RenderSettingsTable inherits GridLayout {
