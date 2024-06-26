@@ -25,7 +25,7 @@ pub fn setup(
             let color_mode = match settings.color_mode.as_str() {
                 "Gradient" => ColorMode::Gradient,
                 "Random" => ColorMode::Random,
-                "StState" => ColorMode::State,
+                "State" => ColorMode::State,
                 "Red" => ColorMode::Color([255, 0, 0, 255]),
                 _ => unreachable!(),
             };
