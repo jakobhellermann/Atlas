@@ -1,5 +1,5 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-    <Package Name="Atlas" Manufacturer="JakobHellermann" Version="1.2.0.0"
+    <Package Name="Atlas" Manufacturer="JakobHellermann" Version="1.3.0.0"
         UpgradeCode="0d205f44-59e8-419f-a56b-11f7c9aa9211">
         <MediaTemplate EmbedCab="true" />
         <MajorUpgrade
