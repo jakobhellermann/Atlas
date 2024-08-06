@@ -1,10 +1,10 @@
-use std::{any::Any, rc::Rc, sync::RwLock};
+use std::sync::{LazyLock, RwLock};
+use std::{any::Any, rc::Rc};
 
 use crate::MapRecordings;
-use once_cell::sync::Lazy;
 use slint::{FilterModel, Model, ModelRc, VecModel};
 
-static FILTER: Lazy<RwLock<String>> = Lazy::new(Default::default);
+static FILTER: LazyLock<RwLock<String>> = LazyLock::new(Default::default);
 
 type InnerModel = Rc<VecModel<MapRecordings>>;
 

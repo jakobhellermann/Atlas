@@ -105,9 +105,9 @@ dependencies = [
 
 [[package]]
 name = "annotate_celeste_map"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae718bc9157410183f97f84f707e2ef3e7325de2dd021a3422e23e5f3f91a499"
+checksum = "73896b82b740bd7b33a861d2b855e2079bbad86ba15435fb80fddb26a9acaef7"
 dependencies = [
  "anyhow",
  "celestedebugrc",
@@ -379,7 +379,6 @@ dependencies = [
  "gix",
  "indexmap",
  "notify-debouncer-full",
- "once_cell",
  "opener 0.7.0",
  "rfd",
  "serde",
@@ -620,9 +619,9 @@ dependencies = [
 
 [[package]]
 name = "celestedebugrc"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "470b7720a1becc26a4f1830179263210e622dcca400b7c66cc3b5ea8ad662592"
+checksum = "15826ee99717a0f0818a3ffa6ebea7ccc63fe419f7b10352278750e5a2c2da93"
 dependencies = [
  "anyhow",
  "ureq",
@@ -630,9 +629,9 @@ dependencies = [
 
 [[package]]
 name = "celesteloader"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e9088db5b5d1039ef509c368cfb240722fea7b1354dd4e975798d034ff3466d"
+checksum = "52573443185fcf14a4be961ef12664c8cac70a874fa622a3ee65e14a48e8d83b"
 dependencies = [
  "anyhow",
  "csv",
@@ -650,9 +649,9 @@ dependencies = [
 
 [[package]]
 name = "celesterender"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ee5fc9635554976e3dc08a3b0bf525ececf8c7c0c485de82aeff2fe4ea13077"
+checksum = "34b48b97a29d3e5f6c3bcbb2340380ff1fbfe204f40731117a533665d678fa76"
 dependencies = [
  "anyhow",
  "celesteloader",

@@ -163,6 +163,7 @@ fn render_recordings(
                     !only_include_visited_rooms
                         || visited_rooms.contains(room.name.trim_start_matches("lvl_"))
                 },
+                status_update: &|_, _| {},
             };
 
             let start_render = Instant::now();
