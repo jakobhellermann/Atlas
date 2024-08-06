@@ -1,27 +1,50 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
+use anyhow::{bail, Result};
 use celesteloader::{cct_physics_inspector::PhysicsInspector, CelesteInstallation};
 use slint::{ComponentHandle, ModelRc};
 
 mod record_tas;
 mod recordings;
 mod render;
+mod settings;
 
 slint::include_modules!();
 
-pub fn main() {
-    let main_window = MainWindow::new().unwrap();
+fn celeste_installation_from_path(path: PathBuf) -> Result<CelesteInstallation> {
+    if !path.join("Celeste").exists() && !path.join("Celeste.exe").exists() {
+        bail!("Directory does not contain Celeste.exe or Celeste file");
+    }
+    Ok(CelesteInstallation { path })
+}
 
-    let celeste = match CelesteInstallation::detect() {
-        Ok(celeste) => celeste,
-        Err(_) => {
-            main_window.set_error("Could not find celeste installation. Please open an issue at https://github.com/jakobhellermann/Atlas or dm me on discord (@dubisteinkek)".into());
-            main_window.run().unwrap();
-            return;
-        }
+pub fn main() {
+    let mut settings = settings::read_settings().unwrap_or_default();
+    let mut celeste = match settings.celeste_path {
+        Some(path) => celeste_installation_from_path(path),
+        // None => CelesteInstallation::detect(),
+        None => Err(anyhow::anyhow!("could not find celeste")),
     };
+
+    let celeste = loop {
+        let error = match celeste {
+            Ok(celeste) => {
+                settings.celeste_path = Some(celeste.path.clone());
+                let _ = settings::write_settings(settings);
+                break celeste;
+            }
+            Err(error) => error,
+        };
+        let files = rfd::FileDialog::new()
+            .set_title(format!("Pick Celeste Folder ({})", error))
+            .pick_folder();
+        let Some(path) = files else { return };
+
+        celeste = celeste_installation_from_path(PathBuf::from(path.to_owned()));
+    };
+
     let physics_inspector = PhysicsInspector::new(&celeste);
 
     let main_window = MainWindow::new().unwrap();
