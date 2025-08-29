@@ -346,14 +346,14 @@ fn with_old_new<T>(
     };
 
     let relative_path = path
-        .strip_prefix(git.work_dir().context("repo has no workdir")?)
+        .strip_prefix(git.workdir().context("repo has no workdir")?)
         .context("path not in repo??")?;
 
     let head = git.head_commit()?;
     let tree = head.tree()?;
 
     let object = tree
-        .lookup_entry_by_path(relative_path, &mut Vec::new())?
+        .lookup_entry_by_path(relative_path)?
         .context("path not in repo?")?
         .object()?;
 

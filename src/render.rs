@@ -191,7 +191,7 @@ fn render_recordings(
             let tmp = std::env::temp_dir().join("atlas");
             std::fs::create_dir_all(&tmp)?;
             let out_path = tmp.join(format!("{}.png", map_bin.replace(['/'], "_")));
-            result.save_png(&out_path, celesterender::Compression::Default)?;
+            result.save_png(&out_path, celesterender::Compression::Balanced)?;
 
             let end = Instant::now();
 

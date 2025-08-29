@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use celesteloader::cct_physics_inspector::PhysicsInspector;
 use notify_debouncer_full::{
-    notify::{self, RecommendedWatcher, Watcher},
+    notify::{self, RecommendedWatcher, },
     DebounceEventResult, Debouncer, FileIdMap,
 };
 use slint::Weak;
@@ -62,12 +62,7 @@ pub fn start_watcher(
             }
         },
     )?;
-    debouncer
-        .watcher()
-        .watch(&recent_recordings_path, notify::RecursiveMode::NonRecursive)?;
-    debouncer
-        .cache()
-        .add_root(&recent_recordings_path, notify::RecursiveMode::NonRecursive);
+    debouncer.watch(&recent_recordings_path, notify::RecursiveMode::NonRecursive)?;
 
     Ok(debouncer)
 }
