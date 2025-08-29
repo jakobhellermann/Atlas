@@ -190,51 +190,50 @@ fn record_tases(
 
     std::thread::spawn(move || {
         let mut last_progress = 0.0;
+        let speed = match settings.enable_tas_recorder {
+            true => 1.0,
+            false => settings.fastforward_speed,
+        };
         let result = debugrc
-            .run_tases_fastforward(
-                &files,
-                settings.fastforward_speed,
-                settings.run_as_merged,
-                |status| {
-                    let percentage_in_tas = status
-                        .current_frame
-                        .parse::<u32>()
-                        .ok()
-                        .and_then(|current| {
-                            let total = status.total_frames.parse::<u32>().ok()?;
-                            Some((current, total))
-                        })
-                        .map(|(current, total)| current as f32 / total as f32)
-                        .unwrap_or(1.0);
+            .run_tases_fastforward(&files, speed, settings.run_as_merged, |status| {
+                let percentage_in_tas = status
+                    .current_frame
+                    .parse::<u32>()
+                    .ok()
+                    .and_then(|current| {
+                        let total = status.total_frames.parse::<u32>().ok()?;
+                        Some((current, total))
+                    })
+                    .map(|(current, total)| current as f32 / total as f32)
+                    .unwrap_or(1.0);
 
-                    let (msg, new_progress) = if let Some(origin) = status.origin {
-                        let msg = format!(
-                            "{}/{} {origin}: {}/{}",
-                            status.current_file + 1,
-                            status.total_files,
-                            status.current_frame,
-                            status.total_frames
-                        );
-                        let percentage = (status.current_file as f32 + percentage_in_tas)
-                            / status.total_files as f32;
-                        (msg, percentage)
-                    } else {
-                        let msg = format!("{}/{}", status.current_frame, status.total_frames);
-                        (msg, percentage_in_tas)
-                    };
+                let (msg, new_progress) = if let Some(origin) = status.origin {
+                    let msg = format!(
+                        "{}/{} {origin}: {}/{}",
+                        status.current_file + 1,
+                        status.total_files,
+                        status.current_frame,
+                        status.total_frames
+                    );
+                    let percentage = (status.current_file as f32 + percentage_in_tas)
+                        / status.total_files as f32;
+                    (msg, percentage)
+                } else {
+                    let msg = format!("{}/{}", status.current_frame, status.total_frames);
+                    (msg, percentage_in_tas)
+                };
 
-                    handle
-                        .upgrade_in_event_loop(move |handle| {
-                            if new_progress > last_progress {
-                                handle.set_record_progress(new_progress);
-                            }
-                            handle.set_record_status_text(msg.into());
-                        })
-                        .unwrap();
+                handle
+                    .upgrade_in_event_loop(move |handle| {
+                        if new_progress > last_progress {
+                            handle.set_record_progress(new_progress);
+                        }
+                        handle.set_record_status_text(msg.into());
+                    })
+                    .unwrap();
 
-                    last_progress = new_progress;
-                },
-            )
+                last_progress = new_progress;
+            })
             .map(|_| {
                 // if let Err(e) = debugrc.get("cct/segmentRecording") {
                 // eprintln!("Failed to segment recording: {e}");
