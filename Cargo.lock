@@ -114,9 +114,9 @@ dependencies = [
 
 [[package]]
 name = "annotate_celeste_map"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46bb542c16ea0503461375e9406e015f04cab44bfc61210ec477f60e483ac42d"
+checksum = "b0f262a066259363f20663e6132661fb739d38ed84caa2a6bdcfbe95bf6209b3"
 dependencies = [
  "ab_glyph",
  "anyhow",
@@ -735,9 +735,9 @@ dependencies = [
 
 [[package]]
 name = "celestedebugrc"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df0b74a84fc45cb1a7b4117b302034046e1c64f88922956591a90fc9f1de27b3"
+checksum = "fc1e53afc61f527e92c13ec0255f7de220d138831b641dee263250e47f62bd5b"
 dependencies = [
  "anyhow",
  "ureq",
@@ -765,9 +765,9 @@ dependencies = [
 
 [[package]]
 name = "celesterender"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3749c60a92dac8e85a1768136824577ea6668e93cffe58391bebd549d2e83f8"
+checksum = "1536ccb299f406a1af4829e2cd9f0ccde45a51165bbf69ff4d174c940ec26fb8"
 dependencies = [
  "anyhow",
  "celesteloader",
@@ -5908,9 +5908,9 @@ dependencies = [
 
 [[package]]
 name = "ureq-proto"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b6cabebbecc4c45189ab06b52f956206cea7d8c8a20851c35a85cb169224cc"
+checksum = "bbe120bb823a0061680e66e9075942fcdba06d46551548c2c259766b9558bc9a"
 dependencies = [
  "base64",
  "http",
