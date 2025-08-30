@@ -3,8 +3,8 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use celesteloader::cct_physics_inspector::PhysicsInspector;
 use notify_debouncer_full::{
-    notify::{self, RecommendedWatcher, },
-    DebounceEventResult, Debouncer, FileIdMap,
+    notify::{self, RecommendedWatcher},
+    DebounceEventResult, Debouncer, RecommendedCache,
 };
 use slint::Weak;
 
@@ -13,7 +13,7 @@ use crate::MainWindow;
 pub fn start_watcher(
     physics_inspector: &PhysicsInspector,
     watcher_handle: Weak<MainWindow>,
-) -> Result<Debouncer<RecommendedWatcher, FileIdMap>> {
+) -> Result<Debouncer<RecommendedWatcher, RecommendedCache>> {
     let recent_recordings_path = physics_inspector.recent_recordings.clone();
     let physics_inspector = physics_inspector.clone();
 
