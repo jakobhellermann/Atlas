@@ -27,7 +27,7 @@ export component ExpandButton inherits VerticalLayout {
             source: @image-url("../assets/dropdown.svg");
             colorize: enabled ? Palette.control-foreground : Palette.control-foreground.darker(1.0);
 
-            animate rotation-angle {
+            animate transform-rotation {
                 duration: 200ms;
                 easing: ease-out;
             }
