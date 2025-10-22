@@ -20,7 +20,7 @@ rfd = { version = "0.15", default-features = false, features = [
 tokio = { version = "1.36", features = ["rt-multi-thread"] }
 opener = "0.8"
 notify-debouncer-full = { version = "0.6", default-features = false }
-gix = { version = "0.73", default-features = false }
+gix = { version = "0.74", default-features = false }
 anyhow = "1.0"
 serde = "1.0"
 serde_json = "1.0"
@@ -32,14 +32,14 @@ toml = "0.9"
 dirs = "6.0"
 
 [target.'cfg(windows)'.dependencies]
-slint = { version = "1.5", default-features = false, features = [
+slint = { version = "1.14", default-features = false, features = [
     "std",
     "compat-1-2",
     "backend-winit",
     "renderer-skia",
 ] }
 [target.'cfg(not(windows))'.dependencies]
-slint = { version = "1.5", default-features = false, features = [
+slint = { version = "1.14", default-features = false, features = [
     "std",
     "compat-1-2",
     "backend-winit",
@@ -47,7 +47,7 @@ slint = { version = "1.5", default-features = false, features = [
 ] }
 
 [build-dependencies]
-slint-build = "1.5.0"
+slint-build = "1.14.0"
 
 [profile.dev.package."*"]
 opt-level = 2
